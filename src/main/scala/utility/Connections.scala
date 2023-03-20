@@ -1,22 +1,45 @@
 package utility
 
 import chisel3._
+import chisel3.experimental.Analog
 
-// I2C lines
-class I2C extends Bundle {
-  val sclk = Bool()
-  val sdat = Bool()
+// Tri-state driver bundle
+class TriStateDriverIO(width: Int) extends Bundle{
+    val busData = Output(UInt(width.W))  // data on the bus
+    val driveData = Input(UInt(width.W)) // data put on the bus if io.drive is asserted
+    val bus = Analog(width.W)            // the tri-state bus
+    val drive = Input(Bool())            // when asserted the module drives the bus
 }
 
-// I2C master IO bundle
-class I2CwriterIO extends Bundle {
-  val i2c = Output(new I2C)
+// I2C lines
+class I2COutput extends Bundle {
+  val sclk = Output(Bool())    // I2C clock
+  val sdatOut = Output(Bool()) // Data to put on bus
+  //val drive = Output(Bool())   // Drive bus
+  val sdatIn = Input(Bool())   // Data read from bus
+}
+
+// I2C Controller byte IO bundle
+class I2CControllerByteIO extends Bundle {
+  //val i2c = new I2COutput
+  val clk = Input(Bool())
+  //val done = Output(Bool())
+  //val enable = Input(Bool())
+  val start = Input(Bool())
+  val byte = Input(UInt(8.W))
+}
+
+// I2C Controller IO bundle
+class I2CControllerIO extends Bundle {
+  val i2c = new I2COutput
   val ready = Output(Bool())
-  val write = Input(Bool())
   val enable = Input(Bool())
-  val addr = Input(UInt(7.W))
-  val regaddr = Input(UInt(7.W))
-  val regdata = Input(UInt(9.W))
+  val start = Input(Bool())
+  val peripheralAddr = Input(UInt(7.W))
+  //val read = Input(Bool())
+  val regAddr = Input(UInt(8.W))
+  val regDataIn = Input(UInt(8.W))
+  //val regDataOut = Output(UInt(8.W))
 }
 
 // IO bundle for ADC
@@ -36,5 +59,5 @@ class WM8731IO_IO extends Bundle {
   val adc = new WM8731IO_ADC()
   val dac = new WM8731IO_DAC()
   val bclk = Output(Bool())
-  val i2c = new I2CwriterIO()
+  val i2c = new I2CControllerIO()
 }
