@@ -367,3 +367,7 @@ diagrammer/
 .bloop/
 .ammonite/
 metals.sbt
+
+quartus/db
+quartus/incremental_db
+quartus/output_files
