@@ -8,6 +8,7 @@ object Constants {
   val BYTE_WIDTH = 8
 
   val CYCLONE_IV_FREQ = 50000000
+  val CYCLONE_II_FREQ = 50000000
   val I2C_FREQ = 12500000
   val WM8731_FREQ = -1
 

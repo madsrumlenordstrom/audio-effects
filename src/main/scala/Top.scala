@@ -1,5 +1,6 @@
 import chisel3._
 import chisel3.util.Counter
+import utility.Constants._
 
 class Top(freq: Int, startOn: Boolean = false) extends Module {
   val io = IO(new Bundle {
@@ -15,5 +16,5 @@ class Top(freq: Int, startOn: Boolean = false) extends Module {
 }
 object Main extends App {
   // Generate the Verilog output
-  emitVerilog(new Top(1000), args)
+  emitVerilog(new Top(CYCLONE_II_FREQ), args)
 }
