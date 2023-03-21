@@ -38,7 +38,7 @@ class I2CControllerByte extends Module {
 
 object I2CController {
   object State extends ChiselEnum {
-    val idle, startSdat, startSclk, addr, ack, regaddr, regdata, stop = Value
+    val idle, startSdat, startSclk, writeByte, ack, regaddr, regdata, stop = Value
   }
 }
 
@@ -53,7 +53,7 @@ class I2CController extends Module {
   io.ready := WireDefault(false.B)
   io.i2c.sclk := WireDefault(true.B)
   io.i2c.sdatOut := WireDefault(true.B)
-  //io.i2c.drive := WireDefault(true.B)
+  io.i2c.drive := WireDefault(true.B)
 
   // Sample condition
   val sample = io.ready && io.start && io.clkA
@@ -62,7 +62,7 @@ class I2CController extends Module {
   val byteReg = RegEnable(io.byte, sample)
 
   // Sample read value on start
-  //val readReg = RegEnable(io.read, sample)
+  val readReg = RegEnable(io.read, sample)
 
   // State machine register
   val state = WireDefault(idle)
@@ -91,16 +91,17 @@ class I2CController extends Module {
     is (startSclk) {
       io.i2c.sclk := false.B
       io.i2c.sdatOut := false.B
-      state := addr
+      state := writeByte
     }
-    is (addr) {
+    is (writeByte) {
       byteCtrl.io.start := true.B
+      io.i2c <> byteCtrl.io.i2c // Let bytecontroller take control of bus
       when (byteCtrl.io.done) {
         state := ack
       }
     }
     is (ack) {
-      
+
     }
   }
 }

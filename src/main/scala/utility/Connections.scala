@@ -21,12 +21,13 @@ class I2COutput extends Bundle {
 
 // I2C Controller byte IO bundle
 class I2CControllerByteIO extends Bundle {
-  val i2c = new I2COutput
-  val clkA = Input(Bool())
-  val clkB = Input(Bool())
-  val done = Output(Bool())
-  val start = Input(Bool())
-  val byte = Input(UInt(8.W))
+  val i2c = new I2COutput    // Bus IO
+  val clkA = Input(Bool())   // Data clock
+  val clkB = Input(Bool())   // Bus clock
+  val start = Input(Bool())  // Start operation signal
+  val read = Input(Bool())   // Read or write
+  val byte = Input(UInt(8.W))// Data to write
+  val done = Output(Bool())  // Operation done
 }
 
 // I2C Controller IO bundle
@@ -37,7 +38,7 @@ class I2CControllerIO extends Bundle {
   val ready = Output(Bool())
   val start = Input(Bool())
   val byte = Input(UInt(8.W))
-  //val read = Input(Bool())
+  val read = Input(Bool())
 }
 
 // IO bundle for ADC
