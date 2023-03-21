@@ -15,16 +15,16 @@ class TriStateDriverIO(width: Int) extends Bundle{
 class I2COutput extends Bundle {
   val sclk = Output(Bool())    // I2C clock
   val sdatOut = Output(Bool()) // Data to put on bus
-  //val drive = Output(Bool())   // Drive bus
+  val drive = Output(Bool())   // Drive bus
   val sdatIn = Input(Bool())   // Data read from bus
 }
 
 // I2C Controller byte IO bundle
 class I2CControllerByteIO extends Bundle {
-  //val i2c = new I2COutput
-  val clk = Input(Bool())
-  //val done = Output(Bool())
-  //val enable = Input(Bool())
+  val i2c = new I2COutput
+  val clkA = Input(Bool())
+  val clkB = Input(Bool())
+  val done = Output(Bool())
   val start = Input(Bool())
   val byte = Input(UInt(8.W))
 }
@@ -32,14 +32,12 @@ class I2CControllerByteIO extends Bundle {
 // I2C Controller IO bundle
 class I2CControllerIO extends Bundle {
   val i2c = new I2COutput
+  val clkA = Input(Bool())
+  val clkB = Input(Bool())
   val ready = Output(Bool())
-  val enable = Input(Bool())
   val start = Input(Bool())
-  val peripheralAddr = Input(UInt(7.W))
+  val byte = Input(UInt(8.W))
   //val read = Input(Bool())
-  val regAddr = Input(UInt(8.W))
-  val regDataIn = Input(UInt(8.W))
-  //val regDataOut = Output(UInt(8.W))
 }
 
 // IO bundle for ADC

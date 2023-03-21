@@ -5,6 +5,7 @@ import chisel3.util._
 
 object Constants {
   val DATA_WIDTH = 32
+  val BYTE_WIDTH = 8
 
   val CYCLONE_IV_FREQ = 50000000
   val I2C_FREQ = 12500000

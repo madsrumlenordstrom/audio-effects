@@ -3,44 +3,34 @@ package io
 import chisel3._
 import chisel3.util.{switch, is, RegEnable, Counter}
 import utility.{I2CControllerIO, I2CControllerByteIO}
-
-object I2CControllerByte {
-  object State extends ChiselEnum {
-    val idle, running = Value
-  }
-}
+import utility.Constants.BYTE_WIDTH
 
 // State machine for sending/receiving byte via I2C
 class I2CControllerByte extends Module {
-  import I2CControllerByte.State
-  import I2CControllerByte.State._
-  
   val io = IO(new I2CControllerByteIO)
 
-  // Output data reg
-  val byteReg = Reg(UInt(8.W))
+  // Default values
+  io.i2c.sclk := io.clkB
+  io.i2c.drive := WireDefault(true.B)
+  io.done := WireDefault(false.B)
 
-  // State machine register
-  val state = WireDefault(idle)
-  val stateReg = RegNext(state, idle)
-  
   // Counter to serialize byte
-  val cntrEnable = WireDefault(false.B)
-  val (cntrValue, cntrWrap) = Counter(cntrEnable, 8)
-  switch (stateReg) {
-    is (idle) {
-      when (io.start) {
-        byteReg := io.byte
-        state := running
-      }
-    }
-    is (running) {
-      cntrEnable := true.B
-      when (cntrWrap) {
-        state := idle
-      }
-    }
+  val cntrEnable = WireDefault(true.B)
+  val (cntrValue, _) = Counter(cntrEnable && io.clkA, BYTE_WIDTH)
+
+  // Counter increment logic
+  when (cntrValue === 0.U) {
+    cntrEnable := io.start
   }
+
+  // Signal when done
+  when (cntrValue === (BYTE_WIDTH - 1).U) {
+    io.done := true.B
+  }
+
+  // Output data
+  val idx = (BYTE_WIDTH - 1).U - cntrValue
+  io.i2c.sdatOut := io.byte(idx)
 }
 
 // Design roughly follow this description:
@@ -48,7 +38,7 @@ class I2CControllerByte extends Module {
 
 object I2CController {
   object State extends ChiselEnum {
-    val idle, startSdat, startSclk, addr, regaddr, regdata, stop = Value
+    val idle, startSdat, startSclk, addr, ack, regaddr, regdata, stop = Value
   }
 }
 
@@ -59,36 +49,32 @@ class I2CController extends Module {
 
   val io = IO(new I2CControllerIO)
 
-  val byter = new I2CControllerByte
-  byter.io.clk := io.enable.asClock
-
-  // Sample condition
-  val sample = io.ready && io.start
-
-  // Sample peripheral register
-  val peripheralAddrReg = RegEnable(io.peripheralAddr ## 0.U(1.W), sample)
-
-  // Sample read value on start
-  //val readReg = RegEnable(io.read, sample)
-
-  // Sample peripheral register address
-  val regAddrReg = RegEnable(io.regAddr, sample)
-
-  // Sample peripheral register data
-  val regDataInReg = RegEnable(io.regDataIn, sample)
-
-  // State machine register
-  val state = WireDefault(idle)
-  val stateReg = RegEnable(state, idle, io.enable)
-
-  val cntrEnable = WireDefault(false.B)
-  val (cntrValue, cntrWrap) = Counter(io.enable && cntrEnable, 8)
-
   // Default values
   io.ready := WireDefault(false.B)
   io.i2c.sclk := WireDefault(true.B)
   io.i2c.sdatOut := WireDefault(true.B)
   //io.i2c.drive := WireDefault(true.B)
+
+  // Sample condition
+  val sample = io.ready && io.start && io.clkA
+
+  // Sample register
+  val byteReg = RegEnable(io.byte, sample)
+
+  // Sample read value on start
+  //val readReg = RegEnable(io.read, sample)
+
+  // State machine register
+  val state = WireDefault(idle)
+  val stateReg = RegEnable(state, idle, io.clkA)
+  state := stateReg
+
+  // Byte controller
+  val byteCtrl = new I2CControllerByte
+  byteCtrl.io.byte := io.byte
+  byteCtrl.io.start := WireDefault(false.B)
+  byteCtrl.io.clkA := io.clkA
+  byteCtrl.io.clkA := io.clkB
 
   // State machine
   switch (stateReg) {
@@ -99,17 +85,22 @@ class I2CController extends Module {
       }
     }
     is (startSdat) {
+      io.i2c.sdatOut := false.B
       state := startSclk
     }
     is (startSclk) {
       io.i2c.sclk := false.B
+      io.i2c.sdatOut := false.B
       state := addr
     }
     is (addr) {
-      cntrEnable := true.B
-      when (cntrWrap) {
-        state := regaddr
+      byteCtrl.io.start := true.B
+      when (byteCtrl.io.done) {
+        state := ack
       }
+    }
+    is (ack) {
+      
     }
   }
 }
