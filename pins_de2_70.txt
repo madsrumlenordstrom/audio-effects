@@ -1,0 +1,39 @@
+PIN_E16     CLK_28
+PIN_AD15    CLK_50
+PIN_D16     CLK_50_2
+PIN_R28     CLK_50_3
+PIN_R3      CLK_50_4
+
+PIN_AJ6     LEDR[0]
+PIN_AK5     LEDR[1]
+PIN_AJ5     LEDR[2]
+PIN_AJ4     LEDR[3]
+PIN_AK3     LEDR[4]
+PIN_AH4     LEDR[5]
+PIN_AJ3     LEDR[6]
+PIN_AJ2     LEDR[7]
+PIN_AH3     LEDR[8]
+PIN_AD14    LEDR[9]
+PIN_AC13    LEDR[10]
+PIN_AB13    LEDR[11]
+PIN_AC12    LEDR[12]
+PIN_AB12    LEDR[13]
+PIN_AC11    LEDR[14]
+PIN_AD9     LEDR[15]
+PIN_AD8     LEDR[16]
+PIN_AJ7     LEDR[17]
+PIN_W27     LEDG[0]
+PIN_W25     LEDG[1]
+PIN_W23     LEDG[2]
+PIN_Y27     LEDG[3]
+PIN_Y24     LEDG[4]
+PIN_Y23     LEDG[5]
+PIN_AA27    LEDG[6]
+PIN_AA24    LEDG[7]
+PIN_AC14    LEDG[8]
+
+
+PIN_T29     KEY[0]      Pushbutton[0]
+PIN_T28     KEY[1]      Pushbutton[1]
+PIN_U30     KEY[2]      Pushbutton[2]
+PIN_U29     KEY[3]      Pushbutton[3]
