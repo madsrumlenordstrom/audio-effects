@@ -29,14 +29,17 @@ class WM8731IO extends Bundle {
 class WM8731ControllerIO extends Bundle {
   val ready = Output(Bool())            // the controller has completed the setup over i2c
   val error = Output(Bool())            // indicate some error has happened
+  val errorCode = Output(UInt(16.W))    // return error code to be displayed
   val wm8731io = new WM8731IO           // board pins
 }
 
 class WM8731Controller extends Module {
   val io = IO(new WM8731ControllerIO)
 
+  // intialize outputs
   io.ready := false.B
   io.error := false.B
+  io.errorCode := 0.U
 
   io.wm8731io.dac.dacdat := true.B
   io.wm8731io.adc.adclrck := true.B
