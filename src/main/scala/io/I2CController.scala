@@ -11,7 +11,7 @@ class I2CControllerByte extends Module {
 
   // Default values
   io.i2c.sclk := io.clkB
-  io.i2c.drive := WireDefault(true.B)
+  io.i2c.sda.drive := WireDefault(true.B)
   io.done := WireDefault(false.B)
 
   // Counter to serialize byte
@@ -30,7 +30,7 @@ class I2CControllerByte extends Module {
 
   // Output data
   val idx = (BYTE_WIDTH - 1).U - cntrValue
-  io.i2c.sdatOut := io.byte(idx)
+  io.i2c.sda.out := io.byte(idx)
 }
 
 // Design roughly follow this description:
@@ -52,8 +52,8 @@ class I2CController extends Module {
   // Default values
   io.ready := WireDefault(false.B)
   io.i2c.sclk := WireDefault(true.B)
-  io.i2c.sdatOut := WireDefault(true.B)
-  io.i2c.drive := WireDefault(true.B)
+  io.i2c.sda.out := WireDefault(true.B)
+  io.i2c.sda.drive := WireDefault(true.B)
 
   // Sample condition
   val sample = io.ready && io.start && io.clkA
@@ -85,12 +85,12 @@ class I2CController extends Module {
       }
     }
     is (startSdat) {
-      io.i2c.sdatOut := false.B
+      io.i2c.sda.out := false.B
       state := startSclk
     }
     is (startSclk) {
       io.i2c.sclk := false.B
-      io.i2c.sdatOut := false.B
+      io.i2c.sda.out := false.B
       state := writeByte
     }
     is (writeByte) {

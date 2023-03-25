@@ -37,3 +37,13 @@ PIN_T29     KEY[0]      Pushbutton[0]
 PIN_T28     KEY[1]      Pushbutton[1]
 PIN_U30     KEY[2]      Pushbutton[2]
 PIN_U29     KEY[3]      Pushbutton[3]
+
+WM8731
+AUD_ADCLRCK PIN_F19     Audio CODEC ADC LR Clock
+AUD_ADCDAT  PIN_E19     Audio CODEC ADC Data
+AUD_DACLRCK PIN_G18     Audio CODEC DAC LR Clock
+AUD_DACDAT  PIN_F18     Audio CODEC DAC Data
+AUD_XCK     PIN_D17     Audio CODEC Chip Clock          max 18Mhz
+AUD_BCLK    PIN_E17     Audio CODEC Bit-Stream Clocka  max 20Mhz
+I2C_SCLK    PIN_J18     I2C Data                        max 526kHz
+I2C_SDAT    PIN_H18     I2C Clock
