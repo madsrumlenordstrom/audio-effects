@@ -6,7 +6,7 @@ import chisel3.util.Counter
 import utility.Constants._
 
 class LEDIO extends Bundle {
-  val gled = Vec(8, Output(Bool()))
+  val gled = Vec(9, Output(Bool()))
   val rled = Vec(18, Output(Bool()))
 }
 
@@ -21,7 +21,7 @@ class LEDController extends Module {
   })
     
   // turn off all leds
-  for (i <- 0 until 8) {
+  for (i <- 0 until 9) {
     io.ledio.gled(i) := WireDefault(false.B)
   }
   for (i <- 0 until 18) {

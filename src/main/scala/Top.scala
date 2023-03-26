@@ -14,15 +14,15 @@ class Top() extends Module {
   led_controller.io.error := false.B
   led_controller.io.errorCode := 0.U
 
-  // gled0 - on
-  io.ledio.gled(0) := true.B
+  // gled8 - on
+  io.ledio.gled(8) := true.B
   
   val wm8731_controller = Module(new WM8731Controller())
   // connect pins from top module to controller module
   wm8731_controller.io.wm8731io <> io.wm8731io
 
-  // gled1 indicates whether wm8731 ready
-  io.ledio.gled(1) := wm8731_controller.io.ready
+  // gled0 indicates whether wm8731 ready
+  io.ledio.gled(0) := wm8731_controller.io.ready
 
   // blinking rled0 indicates wm8731 error
   when (wm8731_controller.io.error) {

@@ -46,8 +46,6 @@ set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
 set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
-set_global_assignment -name VERILOG_FILE ../build/Top.v
-set_global_assignment -name CDF_FILE output_files/Chain1.cdf
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
@@ -97,5 +95,10 @@ set_location_assignment PIN_Y24 -to io_ledio_gled_4
 set_location_assignment PIN_Y23 -to io_ledio_gled_5
 set_location_assignment PIN_AA27 -to io_ledio_gled_6
 set_location_assignment PIN_AA24 -to io_ledio_gled_7
+set_location_assignment PIN_AC14 -to io_ledio_gled_8
 
+
+set_global_assignment -name VERILOG_FILE ../build/TriStateBusDriver.v
+set_global_assignment -name VERILOG_FILE ../build/Top.v
+set_global_assignment -name CDF_FILE output_files/Chain1.cdf
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

@@ -6,7 +6,7 @@ import chisel3.util.ShiftRegister
 
 class ClockDividerByFreq(baseFreq: Int, outFreq: Int, startOn: Boolean = false) extends Module {
   val io = IO(new Bundle {
-    val clk = Output(Clock())
+    val clk = Output(Bool())
   })
 
   // Check arguments
@@ -16,10 +16,10 @@ class ClockDividerByFreq(baseFreq: Int, outFreq: Int, startOn: Boolean = false) 
 
   // Use chisel counter
   val clk = RegInit(startOn.B)
-  val (_, counterWrap) = Counter(true.B, baseFreq/outFreq)
+  val (_, counterWrap) = Counter(true.B, baseFreq / outFreq / 2)
 
   // Flip clock
-  when(counterWrap) {
+  when (counterWrap) {
     clk := ~clk
   }
 

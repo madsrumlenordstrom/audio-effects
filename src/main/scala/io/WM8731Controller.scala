@@ -1,9 +1,12 @@
 package io
 
 import chisel3._
+import chisel3.util.{switch, is}
 import chisel3.experimental.Analog
 
 import utility.I2CIO
+import utility.Constants._
+import utility.ClockDividerByFreq
 
 // IO bundle for ADC
 class WM8731IO_ADC extends Bundle {
@@ -33,18 +36,73 @@ class WM8731ControllerIO extends Bundle {
   val wm8731io = new WM8731IO           // board pins
 }
 
+object WM8731Controller {
+  // Note: currently supports write only
+  object State extends ChiselEnum {
+    val inReset, writing1, waiting1, ready, error = Value
+  }
+}
+
 class WM8731Controller extends Module {
+  import WM8731Controller.State
+  import WM8731Controller.State._
   val io = IO(new WM8731ControllerIO)
 
-  // intialize outputs
-  io.ready := false.B
-  io.error := false.B
-  io.errorCode := 0.U
-
+  // default values
   io.wm8731io.dac.dacdat := true.B
   io.wm8731io.adc.adclrck := true.B
   io.wm8731io.bclk := true.B
-  io.wm8731io.xck := true.B
   io.wm8731io.i2c.sclk := true.B
   io.wm8731io.dac.daclrck := true.B
+
+  val readyReg = RegInit(false.B)
+  val errorReg = RegInit(false.B)
+  val errorCodeReg = RegInit(0.U(16.W))
+  io.ready := readyReg
+  io.error := errorReg
+  io.errorCode := errorCodeReg
+  
+  var stateReg = RegInit(inReset)
+
+  // setup master clock
+  val xckClockDivider = Module(new ClockDividerByFreq(CYCLONE_II_FREQ, WM8731_FREQ))
+  io.wm8731io.xck := xckClockDivider.io.clk
+  
+  val i2cController = Module(new I2CController(WM8731_I2C_ADDR, WM8731_I2C_FREQ))
+  i2cController.io.i2cio <> io.wm8731io.i2c
+  // default values
+  i2cController.io.start := false.B
+  i2cController.io.regAddr := 0.U
+  i2cController.io.in := 0.U
+  
+  switch (stateReg) {
+    is (inReset) {
+      stateReg := writing1
+    }
+    is (writing1) {
+      i2cController.io.in := "b00010000".U  // power most on
+      i2cController.io.regAddr := "b0000110".U // power control reg
+      i2cController.io.start := true.B
+      stateReg := waiting1
+    }
+    is (waiting1) {
+      // trigger start by negedge
+      i2cController.io.start := false.B
+      when (i2cController.io.error) {
+        errorCodeReg := i2cController.io.errorCode
+        stateReg := error
+      }
+      when (i2cController.io.done) {
+        stateReg := ready
+      }
+    }
+    is (ready) {
+      readyReg := true.B
+      // loop in this state
+    }
+    is (error) {
+      errorReg := true.B
+      // loop in this state
+    }
+  }
 }
