@@ -204,6 +204,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
           sdaOutReg := true.B
           // disconnect clock from internal clock so it doesn't go down
           outSclkReg := true.B
+          doneReg := true.B
           nextState := idle
         }
       }
