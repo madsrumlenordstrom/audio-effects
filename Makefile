@@ -31,7 +31,6 @@ all: run test
 .PHONY: run
 run: $(SRCS) dirs
 	$(SBT) "runMain $(MAINTARGET) --target-dir $(HWBUILDDIR)"
-	sed -ri 's/if \(reset\)/if (~reset)/g' $(HWBUILDDIR)/$(TESTTARGET).v
 
 # Run all tests
 .PHONY: testall
