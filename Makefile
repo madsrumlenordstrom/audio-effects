@@ -44,8 +44,9 @@ test: $(SRCS) $(TESTS)
 
 # View waveform in GTKWave
 .PHONY: wave
-wave:
-	if [ ! -f $(WAVETARGET) ]; then $(MAKE) test; fi # TODO make depend on TESTTARGET
+wave: test $(WAVETARGET)
+	#if [ ! -f $(WAVETARGET) ]; then $(MAKE) test; fi # TODO make depend on TESTTARGET
+	sed -ri 's/timescale .../timescale 10ns/g' $(WAVETARGET)
 	$(GTKWAVE) $(WAVETARGET) $(WAVECONFIG) &
 
 # Create directories if they don't exist
