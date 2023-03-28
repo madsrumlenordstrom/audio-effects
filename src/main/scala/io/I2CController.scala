@@ -72,7 +72,8 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   val bitCounter = Reg(UInt(4.W))
 
   // same semantics as reset, on negedge
-  when (~io.start & RegNext(io.start, false.B)) {
+  //when (~io.start & RegNext(io.start, false.B)) {
+  when (io.start) {
     doneReg := false.B
     errorReg := false.B
     errorCodeReg := 0.U
