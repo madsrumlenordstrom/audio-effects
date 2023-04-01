@@ -83,8 +83,8 @@ class WM8731Controller extends Module {
       stateReg := writing1
     }
     is (writing1) {
-      i2cCtrlInDataReg := "b0000010".U  // power most on
-      i2cCtrlRegAddrReg := "b00000110".U // power control reg
+      i2cCtrlRegAddrReg := "b00000010".U // left headphone out
+      i2cCtrlInDataReg :=  "b00000000".U  // mute
       i2cCtrlStartReg := true.B
       stateReg := waiting1
     }

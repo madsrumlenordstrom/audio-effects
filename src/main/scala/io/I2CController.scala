@@ -63,6 +63,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   val sclk = clockDivider.io.clk
   val sclk_negedge = ~sclk & RegNext(sclk, false.B)
   val sclk_posedge = sclk & RegNext(~sclk, false.B)
+  val forceImmediateStateChangeReg = RegInit(false.B)
 
   when (outputClock) {
     io.i2cio.sclk := sclk
@@ -94,7 +95,12 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   }
 
   // state machine works at sclk clock
-  when (sclk_negedge) {
+  when (sclk_negedge || forceImmediateStateChangeReg) {
+    when (forceImmediateStateChangeReg) {
+      // one time request
+      forceImmediateStateChangeReg := false.B
+    }
+
     switch (stateReg) {
       is (idle) {
         // output high on clock
@@ -144,16 +150,21 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
             nextState := writeRegAddr
             // reset the bit counter for next step
             bitCounter := 0.U
-            sdaDriveReg := true.B
+
+            // force advancing the state in the next tick of the board clock
+            // without waiting for next i2c sclk tick
+            forceImmediateStateChangeReg := true.B
+            // it is not enough to wait for next tick, cause otherwise stateReg will still have the old value
+            // in the next switch
+            stateReg := nextState
           }
         }
       }
       is (writeRegAddr) {
         sdaDriveReg := true.B
-        when (bitCounter < 8.U) {
-          sdaOutReg := (io.regAddr >> (7.U - bitCounter)) & 1.U
-          bitCounter := bitCounter + 1.U
-        } .otherwise {
+        sdaOutReg := (io.regAddr >> (7.U - bitCounter)) & 1.U
+        bitCounter := bitCounter + 1.U
+        when (bitCounter === 7.U) {
           // We've sent the last bit, advance to next stage
           nextState := waitAckRegAddr
         }
@@ -185,10 +196,9 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
       }
       is (writeData) {
         sdaDriveReg := true.B
-        when (bitCounter < 8.U) {
-          sdaOutReg := (io.inData >> (7.U - bitCounter)) & 1.U
-          bitCounter := bitCounter + 1.U
-        } .otherwise {
+        sdaOutReg := (io.inData >> (7.U - bitCounter)) & 1.U
+        bitCounter := bitCounter + 1.U
+        when (bitCounter === 7.U) {
           // We've sent the last bit, advance to next stage
           nextState := waitAckData
         }
@@ -206,6 +216,13 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
           } .otherwise {
             // we got ack
             nextState := stop
+
+            // force advancing the state in the next tick of the board clock
+            // without waiting for next i2c sclk tick
+            forceImmediateStateChangeReg := true.B
+            // it is not enough to wait for next tick, cause otherwise stateReg will still have the old value
+            // in the next switch
+            stateReg := nextState
           }
         }
       }
@@ -219,6 +236,8 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
           sdaOutReg := true.B
           // disconnect clock from internal clock so it doesn't go down
           outputClock := false.B
+          // force immediate change (don't wait for next internal tick) to avoid a bump in sclk for 1 tick
+          io.i2cio.sclk := true.B
           doneReg := true.B
           nextState := idle
         }
