@@ -17,6 +17,9 @@ class Top() extends Module {
 
     // gled8 - on
     io.ledio.gled(8) := true.B
+
+    io.ledio.gled(1) := io.wm8731io.bclk
+    io.ledio.gled(2) := ~io.wm8731io.bclk
     
     val wm8731Ctrl = Module(new WM8731Controller())
     // connect pins from top module to controller module
