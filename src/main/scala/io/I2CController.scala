@@ -24,7 +24,7 @@ class I2CControllerIO extends Bundle {
   val i2cio = new I2CIO
   val start = Input(Bool())         // same semantics as reset, execution begins on negedge
   val regAddr = Input(UInt(8.W))
-  val in = Input(UInt(8.W))
+  val inData = Input(UInt(8.W))
   // val out = Output(UInt(8.W))
   // val read = Input(Bool())          // 1 for read (to in), 0 for write (out)
 
@@ -173,13 +173,20 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
             nextState := writeData
             // reset the bit counter for next step
             bitCounter := 0.U
+
+            // force advancing the state in the next tick of the board clock
+            // without waiting for next i2c sclk tick
+            forceImmediateStateChangeReg := true.B
+            // it is not enough to wait for next tick, cause otherwise stateReg will still have the old value
+            // in the next switch
+            stateReg := nextState
           }
         }
       }
       is (writeData) {
         sdaDriveReg := true.B
         when (bitCounter < 8.U) {
-          sdaOutReg := (io.in >> (7.U - bitCounter)) & 1.U
+          sdaOutReg := (io.inData >> (7.U - bitCounter)) & 1.U
           bitCounter := bitCounter + 1.U
         } .otherwise {
           // We've sent the last bit, advance to next stage

@@ -68,34 +68,34 @@ class WM8731Controller extends Module {
   val xckClockDivider = Module(new ClockDividerByFreq(CYCLONE_II_FREQ, WM8731_FREQ))
   io.wm8731io.xck := xckClockDivider.io.clk
   
-  val i2cController = Module(new I2CController(WM8731_I2C_ADDR, WM8731_I2C_FREQ))
-  i2cController.io.i2cio <> io.wm8731io.i2c
+  val i2cCtrl = Module(new I2CController(WM8731_I2C_ADDR, WM8731_I2C_FREQ))
+  i2cCtrl.io.i2cio <> io.wm8731io.i2c
   // default values
-  val i2cControllerStartReg = RegInit(false.B)
-  val i2cControllerRegAddrReg = RegInit(0.U(8.W))
-  val i2cControllerInReg = RegInit(0.U(8.W))
-  i2cController.io.start := i2cControllerStartReg
-  i2cController.io.regAddr := i2cControllerRegAddrReg
-  i2cController.io.in := i2cControllerInReg
+  val i2cCtrlStartReg = RegInit(false.B)
+  val i2cCtrlRegAddrReg = RegInit(0.U(8.W))
+  val i2cCtrlInDataReg = RegInit(0.U(8.W))
+  i2cCtrl.io.start := i2cCtrlStartReg
+  i2cCtrl.io.regAddr := i2cCtrlRegAddrReg
+  i2cCtrl.io.inData := i2cCtrlInDataReg
   
   switch (stateReg) {
     is (inReset) {
       stateReg := writing1
     }
     is (writing1) {
-      i2cControllerInReg := "b00010000".U  // power most on
-      i2cControllerRegAddrReg := "b0000110".U // power control reg
-      i2cControllerStartReg := true.B
+      i2cCtrlInDataReg := "b0000010".U  // power most on
+      i2cCtrlRegAddrReg := "b00000110".U // power control reg
+      i2cCtrlStartReg := true.B
       stateReg := waiting1
     }
     is (waiting1) {
       // trigger start by negedge
-      i2cControllerStartReg := false.B
-      when (i2cController.io.error) {
-        errorCodeReg := i2cController.io.errorCode
+      i2cCtrlStartReg := false.B
+      when (i2cCtrl.io.error) {
+        errorCodeReg := i2cCtrl.io.errorCode
         stateReg := error
       }
-      when (i2cController.io.done) {
+      when (i2cCtrl.io.done) {
         stateReg := ready
       }
     }
