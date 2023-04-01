@@ -71,23 +71,26 @@ class WM8731Controller extends Module {
   val i2cController = Module(new I2CController(WM8731_I2C_ADDR, WM8731_I2C_FREQ))
   i2cController.io.i2cio <> io.wm8731io.i2c
   // default values
-  i2cController.io.start := false.B
-  i2cController.io.regAddr := 0.U
-  i2cController.io.in := 0.U
+  val i2cControllerStartReg = RegInit(false.B)
+  val i2cControllerRegAddrReg = RegInit(0.U(8.W))
+  val i2cControllerInReg = RegInit(0.U(8.W))
+  i2cController.io.start := i2cControllerStartReg
+  i2cController.io.regAddr := i2cControllerRegAddrReg
+  i2cController.io.in := i2cControllerInReg
   
   switch (stateReg) {
     is (inReset) {
       stateReg := writing1
     }
     is (writing1) {
-      i2cController.io.in := "b00010000".U  // power most on
-      i2cController.io.regAddr := "b0000110".U // power control reg
-      i2cController.io.start := true.B
+      i2cControllerInReg := "b00010000".U  // power most on
+      i2cControllerRegAddrReg := "b0000110".U // power control reg
+      i2cControllerStartReg := true.B
       stateReg := waiting1
     }
     is (waiting1) {
       // trigger start by negedge
-      i2cController.io.start := false.B
+      i2cControllerStartReg := false.B
       when (i2cController.io.error) {
         errorCodeReg := i2cController.io.errorCode
         stateReg := error

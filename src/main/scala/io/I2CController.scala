@@ -45,7 +45,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   // connect TriState wrapper to actual pin
   io.i2cio.sda <> sda.io.bus
   val sdaDriveReg = RegInit(true.B)
-  val sdaOutReg = RegInit(0.U)
+  val sdaOutReg = RegInit(0.U(1.W))
   sda.io.drive := sdaDriveReg
   sda.io.out := sdaOutReg
 
@@ -56,18 +56,24 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   io.error := errorReg
   io.errorCode := errorCodeReg
 
-  val outSclkReg = RegInit(true.B)
-  io.i2cio.sclk := outSclkReg
+  val outputClock = RegInit(false.B)
 
   val clockDivider = Module(new ClockDividerByFreq(CYCLONE_II_FREQ, clockFreq))
   // internal clock at clockFreq frequency
   val sclk = clockDivider.io.clk
   val sclk_negedge = ~sclk & RegNext(sclk, false.B)
+  val sclk_posedge = sclk & RegNext(~sclk, false.B)
+
+  when (outputClock) {
+    io.i2cio.sclk := sclk
+  } .otherwise {
+    io.i2cio.sclk := true.B
+  }
 
   // State machine register
-  // we change state on internal clock's negedge
+  // we change state on internal clock's posedge, so all cases happen when state has changed
   val nextState = RegInit(idle)
-  val stateReg = RegEnable(nextState, idle, sclk_negedge)
+  val stateReg = RegEnable(nextState, idle, sclk_posedge)
   // advance counter only on internal clock ticks
   val bitCounter = Reg(UInt(4.W))
 
@@ -78,7 +84,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
     errorReg := false.B
     errorCodeReg := 0.U
     // detach output clock from internal clock and set it to 1
-    outSclkReg := true.B
+    outputClock := false.B
     // output 1 on sda
     sdaOutReg := true.B
     sdaDriveReg := true.B
@@ -92,7 +98,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
     switch (stateReg) {
       is (idle) {
         // output high on clock
-        outSclkReg := true.B
+        outputClock := false.B
         // loop in itself
       }
       is (start) {
@@ -110,7 +116,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
       }
       is (writeDeviceAddr) {
         // we connect the output sclk to internal sclk now so we get a falling edge on outer sclk
-        outSclkReg := sclk
+        outputClock := true.B
 
         sdaDriveReg := true.B
         when (bitCounter < 7.U) {
@@ -138,6 +144,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
             nextState := writeRegAddr
             // reset the bit counter for next step
             bitCounter := 0.U
+            sdaDriveReg := true.B
           }
         }
       }
@@ -204,7 +211,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
         } .otherwise {
           sdaOutReg := true.B
           // disconnect clock from internal clock so it doesn't go down
-          outSclkReg := true.B
+          outputClock := false.B
           doneReg := true.B
           nextState := idle
         }
