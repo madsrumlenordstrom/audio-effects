@@ -82,6 +82,8 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   //when (~io.start & RegNext(io.start, false.B)) {
   when (io.start) {
     doneReg := false.B
+    // we need to remove the done in the same tick, otherwise mistaken it for done form the outside..
+    io.done := false.B
     errorReg := false.B
     errorCodeReg := 0.U
     // detach output clock from internal clock and set it to 1

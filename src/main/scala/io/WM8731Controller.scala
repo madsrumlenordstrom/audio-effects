@@ -10,13 +10,15 @@ import utility.ClockDividerByFreq
 
 // IO bundle for ADC
 class WM8731IO_ADC extends Bundle {
-  val adclrck = Output(Bool())
+  // wc8731 runs in master mode, so we get the clock from the device
+  val adclrck = Input(Bool())
   val adcdat = Input(Bool())
 }
 
 // IO bundle for DAC
 class WM8731IO_DAC extends Bundle {
-  val daclrck = Output(Bool())
+  // wc8731 runs in master mode, so we get the clock from the device
+  val daclrck = Input(Bool())
   val dacdat = Output(Bool())
 }
 
@@ -24,7 +26,8 @@ class WM8731IO_DAC extends Bundle {
 class WM8731IO extends Bundle {
   val adc = new WM8731IO_ADC()
   val dac = new WM8731IO_DAC()
-  val bclk = Output(Bool())         // bit-stream clock
+  // wc8731 runs in master mode, so we get the clock from the device
+  val bclk = Input(Bool())          // bit-stream clock
   val xck = Output(Bool())          // chip clock
   val i2c = new I2CIO()
 }
@@ -39,7 +42,7 @@ class WM8731ControllerIO extends Bundle {
 object WM8731Controller {
   // Note: currently supports write only
   object State extends ChiselEnum {
-    val inReset, writing1, waiting1, ready, error = Value
+    val inReset, initRegs, resetDevice, outputsPowerDown, setFormat, setAnalogPathControl, setDigitalPathControl, setActivate, powerOn, waitI2C, ready, error = Value
   }
 }
 
@@ -49,11 +52,7 @@ class WM8731Controller extends Module {
   val io = IO(new WM8731ControllerIO)
 
   // default values
-  io.wm8731io.dac.dacdat := true.B
-  io.wm8731io.adc.adclrck := true.B
-  io.wm8731io.bclk := true.B
-  io.wm8731io.i2c.sclk := true.B
-  io.wm8731io.dac.daclrck := true.B
+  io.wm8731io.dac.dacdat := WireDefault(true.B)
 
   val readyReg = RegInit(false.B)
   val errorReg = RegInit(false.B)
@@ -63,6 +62,7 @@ class WM8731Controller extends Module {
   io.errorCode := errorCodeReg
   
   var stateReg = RegInit(inReset)
+  var nextStateAfterI2C = RegInit(inReset)
 
   // setup master clock
   val xckClockDivider = Module(new ClockDividerByFreq(CYCLONE_II_FREQ, WM8731_FREQ))
@@ -80,23 +80,68 @@ class WM8731Controller extends Module {
   
   switch (stateReg) {
     is (inReset) {
-      stateReg := writing1
+      stateReg := resetDevice
     }
-    is (writing1) {
-      i2cCtrlRegAddrReg := "b00000010".U // left headphone out
-      i2cCtrlInDataReg :=  "b00000000".U  // mute
+    is (resetDevice) {
+      // TODO: doesn't seem to actually make any difference...
+      i2cCtrlRegAddrReg := "b00001111".U // reset register
+      i2cCtrlInDataReg  := "b00000000".U // reset device
       i2cCtrlStartReg := true.B
-      stateReg := waiting1
+      stateReg := waitI2C
+      nextStateAfterI2C := outputsPowerDown
     }
-    is (waiting1) {
+    is (outputsPowerDown) {
+      i2cCtrlRegAddrReg := "b00000110".U // power register
+      i2cCtrlInDataReg  := "b00010000".U // outputs power down
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+      nextStateAfterI2C := setFormat
+    }
+    is (setFormat) {
+      i2cCtrlRegAddrReg := "b00000111".U // digital audio interface format
+      i2cCtrlInDataReg  := "b01001010".U // Data = I2S, Bit length = 24 bits, master = on
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+      nextStateAfterI2C := setAnalogPathControl
+    }
+    is (setAnalogPathControl) {
+      i2cCtrlRegAddrReg := "b00000100".U // analog audio path control
+      i2cCtrlInDataReg  := "b00011000".U // DACSEL on, BYPASS on
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+      nextStateAfterI2C := setDigitalPathControl
+    }
+    is (setDigitalPathControl) {
+      i2cCtrlRegAddrReg := "b00000101".U // digital audio path control
+      i2cCtrlInDataReg  := "b00000000".U // DAC soft mute control off
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+      nextStateAfterI2C := setActivate
+    }
+    is (setActivate) {
+      i2cCtrlRegAddrReg := "b00001001".U // active control
+      i2cCtrlInDataReg  := "b00000001".U // active
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+      nextStateAfterI2C := powerOn
+    }
+    is (powerOn) {
+      i2cCtrlRegAddrReg := "b00000110".U // power register
+      i2cCtrlInDataReg  := "b00000000".U // all on
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+      nextStateAfterI2C := ready
+    }
+    is (waitI2C) {
       // trigger start by negedge
       i2cCtrlStartReg := false.B
       when (i2cCtrl.io.error) {
-        errorCodeReg := i2cCtrl.io.errorCode
+        // distinguish between i2c errors in different states by encoding the next state..
+        errorCodeReg := i2cCtrl.io.errorCode | (nextStateAfterI2C.asUInt << 4.U)
         stateReg := error
       }
       when (i2cCtrl.io.done) {
-        stateReg := ready
+        stateReg := nextStateAfterI2C
       }
     }
     is (ready) {
