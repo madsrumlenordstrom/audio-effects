@@ -11,7 +11,7 @@ class WM8731ControllerSpec extends AnyFlatSpec with ChiselScalatestTester {
         dut.reset.poke(true.B)
         dut.clock.step(10)
         dut.reset.poke(false.B)
-        dut.clock.step(100000)
+        dut.clock.step(150000)
     }
   }
 }
