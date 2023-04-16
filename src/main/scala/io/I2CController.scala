@@ -23,8 +23,8 @@ object I2CController {
 class I2CControllerIO extends Bundle {
   val i2cio = new I2CIO
   val start = Input(Bool())         // same semantics as reset, execution begins on negedge
-  val regAddr = Input(UInt(8.W))
-  val inData = Input(UInt(8.W))
+  val regAddr = Input(UInt(7.W))
+  val inData = Input(UInt(9.W))
   // val out = Output(UInt(8.W))
   // val read = Input(Bool())          // 1 for read (to in), 0 for write (out)
 
@@ -164,12 +164,15 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
       }
       is (writeRegAddr) {
         sdaDriveReg := true.B
-        sdaOutReg := (io.regAddr >> (7.U - bitCounter)) & 1.U
-        bitCounter := bitCounter + 1.U
-        when (bitCounter === 7.U) {
+        when (bitCounter < 7.U) {
+          sdaOutReg := (io.regAddr >> (6.U - bitCounter)) & 1.U
+        } .elsewhen (bitCounter === 7.U) {
+          // the last transmitted here is the msb of the 9-bit data
+          sdaOutReg := (io.inData >> 8.U) & 1.U
           // We've sent the last bit, advance to next stage
           nextState := waitAckRegAddr
         }
+        bitCounter := bitCounter + 1.U
       }
       is (waitAckRegAddr) {
         // consists of two states - first we release the drive

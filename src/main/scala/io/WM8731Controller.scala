@@ -95,57 +95,57 @@ class WM8731Controller extends Module {
     }
     is (resetDevice) {
       // TODO: doesn't seem to actually make any difference...
-      i2cCtrlRegAddrReg := "b00001111".U // reset register
-      i2cCtrlInDataReg  := "b00000000".U // reset device
+      i2cCtrlRegAddrReg := "b0001111".U // reset register
+      i2cCtrlInDataReg  := "b000000000".U // reset device
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := outputsPowerDown
     }
     is (outputsPowerDown) {
-      i2cCtrlRegAddrReg := "b00000110".U // power register
-      i2cCtrlInDataReg  := "b00010000".U // outputs power down
+      i2cCtrlRegAddrReg := "b0000110".U // power register
+      i2cCtrlInDataReg  := "b000010000".U // outputs power down
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setFormat
     }
     is (setFormat) {
-      i2cCtrlRegAddrReg := "b00000111".U // digital audio interface format
-      i2cCtrlInDataReg  := "b01001010".U // Data = I2S, Bit length = 24 bits, master = on
+      i2cCtrlRegAddrReg := "b0000111".U // digital audio interface format
+      i2cCtrlInDataReg  := "b001001010".U // Data = I2S, Bit length = 24 bits, master = on
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setSampling
     }
     is (setSampling) {
-      i2cCtrlRegAddrReg := "b00001000".U // sampling control
-      i2cCtrlInDataReg  := "b00000001".U // mode=usb, 250fs, sample rate - 48kHz
+      i2cCtrlRegAddrReg := "b0001000".U // sampling control
+      i2cCtrlInDataReg  := "b000000001".U // mode=usb, 250fs, sample rate - 48kHz
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setAnalogPathControl
     }
     is (setAnalogPathControl) {
-      i2cCtrlRegAddrReg := "b00000100".U // analog audio path control
-      i2cCtrlInDataReg  := "b00011000".U // DACSEL on, BYPASS on
+      i2cCtrlRegAddrReg := "b0000100".U // analog audio path control
+      i2cCtrlInDataReg  := "b000011000".U // DACSEL on, BYPASS on
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setDigitalPathControl
     }
     is (setDigitalPathControl) {
-      i2cCtrlRegAddrReg := "b00000101".U // digital audio path control
-      i2cCtrlInDataReg  := "b00000000".U // DAC soft mute control off
+      i2cCtrlRegAddrReg := "b0000101".U // digital audio path control
+      i2cCtrlInDataReg  := "b000000000".U // DAC soft mute control off
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setActivate
     }
     is (setActivate) {
-      i2cCtrlRegAddrReg := "b00001001".U // active control
-      i2cCtrlInDataReg  := "b00000001".U // active
+      i2cCtrlRegAddrReg := "b0001001".U // active control
+      i2cCtrlInDataReg  := "b000000001".U // active
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := powerOn
     }
     is (powerOn) {
-      i2cCtrlRegAddrReg := "b00000110".U // power register
-      i2cCtrlInDataReg  := "b00000000".U // all on
+      i2cCtrlRegAddrReg := "b0000110".U // power register
+      i2cCtrlInDataReg  := "b000000000".U // all on
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := ready
