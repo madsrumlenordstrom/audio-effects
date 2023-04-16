@@ -9,7 +9,6 @@ object Constants {
 
   val CYCLONE_IV_FREQ = 50000000
   val CYCLONE_II_FREQ = 50000000
-  val WM8731_FREQ = 12500000
 
   val WM8731_I2C_ADDR = 0x1a
   val WM8731_I2C_FREQ = 100000  // max is 526kHz

@@ -6,7 +6,8 @@ import chisel3.experimental.Analog
 
 import utility.I2CIO
 import utility.Constants._
-import utility.ClockDividerByFreq
+import utility.AudioPLLDriver
+import utility.AudioPLL
 
 // IO bundle for ADC
 class WM8731IO_ADC extends Bundle {
@@ -42,7 +43,7 @@ class WM8731ControllerIO extends Bundle {
 object WM8731Controller {
   // Note: currently supports write only
   object State extends ChiselEnum {
-    val inReset, initRegs, resetDevice, outputsPowerDown, setFormat, setAnalogPathControl, setDigitalPathControl, setActivate, powerOn, waitI2C, ready, error = Value
+    val inReset, initRegs, resetDevice, outputsPowerDown, setFormat, setSampling, setAnalogPathControl, setDigitalPathControl, setActivate, powerOn, waitI2C, ready, error = Value
   }
 }
 
@@ -65,8 +66,18 @@ class WM8731Controller extends Module {
   var nextStateAfterI2C = RegInit(inReset)
 
   // setup master clock
-  val xckClockDivider = Module(new ClockDividerByFreq(CYCLONE_II_FREQ, WM8731_FREQ))
-  io.wm8731io.xck := xckClockDivider.io.clk
+  val audioPLL = Module(new AudioPLLDriver())
+  audioPLL.io.clock := this.clock
+  audioPLL.io.reset := this.reset
+  io.wm8731io.xck := audioPLL.io.c0
+
+  // make tests happy, isn't included in quartus project file
+  // actually it instantiates a useless pll on the board, we
+  // need to find out how to tell chisel it should compile it
+  // even though instantiation is via inlined verilog in AudioPLLDriver..
+  val dummyAudioPLL = Module(new AudioPLL)
+  dummyAudioPLL.io.inclk0 := this.clock
+  dummyAudioPLL.io.areset := this.reset
   
   val i2cCtrl = Module(new I2CController(WM8731_I2C_ADDR, WM8731_I2C_FREQ))
   i2cCtrl.io.i2cio <> io.wm8731io.i2c
@@ -100,6 +111,13 @@ class WM8731Controller extends Module {
     is (setFormat) {
       i2cCtrlRegAddrReg := "b00000111".U // digital audio interface format
       i2cCtrlInDataReg  := "b01001010".U // Data = I2S, Bit length = 24 bits, master = on
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+      nextStateAfterI2C := setSampling
+    }
+    is (setSampling) {
+      i2cCtrlRegAddrReg := "b00001000".U // sampling control
+      i2cCtrlInDataReg  := "b00000001".U // mode=usb, 250fs, sample rate - 48kHz
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setAnalogPathControl
