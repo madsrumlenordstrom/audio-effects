@@ -25,7 +25,7 @@ DIAGRAMTARGET ?=  $(CURDIR)/build/Top.fir
 DIAGRAMMERDIR ?=
 
 .PHONY: all
-all: run test
+all: run
 
 # Run main target
 .PHONY: run
