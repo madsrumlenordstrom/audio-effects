@@ -31,7 +31,7 @@ class LEDController extends Module {
   // Blink LED every second using Chisel built-in util.Counter
   val blinking_led = RegInit(false.B)
   val (_, counterWrap) = Counter(true.B, CYCLONE_II_FREQ / 2)
-  when(counterWrap) {
+  when (counterWrap) {
     blinking_led := ~blinking_led
   }
 

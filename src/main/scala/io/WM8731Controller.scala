@@ -38,6 +38,9 @@ class WM8731ControllerIO extends Bundle {
   val error = Output(Bool())            // indicate some error has happened
   val errorCode = Output(UInt(16.W))    // return error code to be displayed
   val wm8731io = new WM8731IO           // board pins
+
+  val inData = Vec(2, Output(SInt(24.W)))
+  val outData = Vec(2, Input(SInt(24.W)))
 }
 
 object WM8731Controller {
@@ -78,6 +81,20 @@ class WM8731Controller extends Module {
   val dummyAudioPLL = Module(new AudioPLL)
   dummyAudioPLL.io.inclk0 := this.clock
   dummyAudioPLL.io.areset := this.reset
+
+  val i2sIn = Module(new I2S(0, 24))
+  i2sIn.io.bclk := io.wm8731io.bclk
+  i2sIn.io.lrc := io.wm8731io.adc.adclrck
+  i2sIn.io.dat := io.wm8731io.adc.adcdat
+  io.inData(0) := i2sIn.io.data(0).asSInt
+  io.inData(1) := i2sIn.io.data(1).asSInt
+
+  val i2sOut = Module(new I2S(1, 24))
+  i2sOut.io.bclk := io.wm8731io.bclk
+  i2sOut.io.lrc := io.wm8731io.dac.daclrck
+  io.wm8731io.dac.dacdat := i2sOut.io.dat
+  i2sOut.io.data(0) := io.outData(0).asUInt
+  i2sOut.io.data(1) := io.outData(1).asUInt
   
   val i2cCtrl = Module(new I2CController(WM8731_I2C_ADDR, WM8731_I2C_FREQ))
   i2cCtrl.io.i2cio <> io.wm8731io.i2c
@@ -124,7 +141,7 @@ class WM8731Controller extends Module {
     }
     is (setAnalogPathControl) {
       i2cCtrlRegAddrReg := "b0000100".U // analog audio path control
-      i2cCtrlInDataReg  := "b000011000".U // DACSEL on, BYPASS on
+      i2cCtrlInDataReg  := "b000010000".U // DACSEL on, BYPASS off
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setDigitalPathControl
