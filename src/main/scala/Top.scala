@@ -33,8 +33,9 @@ class Top() extends Module {
 
     // TODO: move this connection to DSP module
     wm8731Ctrl.io.outData(0) := wm8731Ctrl.io.inData(0)
-    // demonstrate single channel
-    wm8731Ctrl.io.outData(1) := 0.S
+    wm8731Ctrl.io.outData(1) := wm8731Ctrl.io.inData(1)
+    //// demonstrate single channel
+    //wm8731Ctrl.io.outData(1) := 0.S
 
     // TODO: move to a module
     val rledReg = Reg(Vec(18, Bool()))

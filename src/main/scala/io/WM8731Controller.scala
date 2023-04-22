@@ -46,7 +46,7 @@ class WM8731ControllerIO extends Bundle {
 object WM8731Controller {
   // Note: currently supports write only
   object State extends ChiselEnum {
-    val inReset, initRegs, resetDevice, outputsPowerDown, setFormat, setSampling, setAnalogPathControl, setDigitalPathControl, setActivate, powerOn, waitI2C, ready, error = Value
+    val inReset, initRegs, resetDevice, outputsPowerDown, setLeftLineIn, setRightLineIn, setFormat, setSampling, setAnalogPathControl, setDigitalPathControl, setActivate, powerOn, waitI2C, ready, error = Value
   }
 }
 
@@ -123,7 +123,21 @@ class WM8731Controller extends Module {
       i2cCtrlInDataReg  := "b000010000".U // outputs power down
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
-      nextStateAfterI2C := setFormat
+      nextStateAfterI2C := setLeftLineIn
+    }
+    is (setLeftLineIn) {
+      i2cCtrlRegAddrReg := "b0000000".U // left line in
+      i2cCtrlInDataReg  := "b000010111".U // Vol=default, mute=0, load_both=0
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+      nextStateAfterI2C := setRightLineIn
+    }
+    is (setRightLineIn) {
+      i2cCtrlRegAddrReg := "b0000001".U // right line in
+      i2cCtrlInDataReg  := "b000010111".U // Vol=default, mute=0, load_both=0
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+     nextStateAfterI2C := setFormat
     }
     is (setFormat) {
       i2cCtrlRegAddrReg := "b0000111".U // digital audio interface format
@@ -141,7 +155,7 @@ class WM8731Controller extends Module {
     }
     is (setAnalogPathControl) {
       i2cCtrlRegAddrReg := "b0000100".U // analog audio path control
-      i2cCtrlInDataReg  := "b000010000".U // DACSEL on, BYPASS off
+      i2cCtrlInDataReg  := "b000010010".U // DACSEL on, BYPASS off, INSEL=Line in, Mic mute to ADC
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setDigitalPathControl
