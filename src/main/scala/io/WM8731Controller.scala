@@ -100,8 +100,8 @@ class WM8731Controller extends Module {
   i2cCtrl.io.i2cio <> io.wm8731io.i2c
   // default values
   val i2cCtrlStartReg = RegInit(false.B)
-  val i2cCtrlRegAddrReg = RegInit(0.U(8.W))
-  val i2cCtrlInDataReg = RegInit(0.U(8.W))
+  val i2cCtrlRegAddrReg = RegInit(0.U(7.W))
+  val i2cCtrlInDataReg = RegInit(0.U(9.W))
   i2cCtrl.io.start := i2cCtrlStartReg
   i2cCtrl.io.regAddr := i2cCtrlRegAddrReg
   i2cCtrl.io.inData := i2cCtrlInDataReg
