@@ -23,4 +23,9 @@ or simulate and waveforms in one command:
 make test wave
 ```
 
-More options for configuring make targets can be specified in a config.mk file.
+More options for configuring make targets can be specified in a config.mk file. An example could be:
+```
+TESTTARGET = io.WM8731ControllerSpec
+WAVETARGET = test_run_dir/WM8731ControllerSpec_should_work/WM8731Controller.vcd
+WAVECONFIG = test_run_dir/wave.gtkw
+```
