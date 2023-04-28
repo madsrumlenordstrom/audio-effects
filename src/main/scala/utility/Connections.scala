@@ -2,6 +2,7 @@ package utility
 
 import chisel3._
 import chisel3.experimental.Analog
+import utility.Constants.{DATA_WIDTH, CTRL_WIDTH}
 
 // Bundle for the assigned pins
 class I2CIO extends Bundle {
@@ -17,8 +18,8 @@ class TriStateBusDriverIO(width: Int) extends Bundle{
     val drive = Input(Bool())            // when asserted the module drives the bus
 }
 
-class DSPModuleIO(dataWidth: Int, ctrlWidth: Int) extends Bundle {
-    val audioIn = Input(SInt(dataWidth.W))  // Data input for DSP
-    val audioOut = Output(SInt(dataWidth.W))// Data output for DSP
-    val ctrlSig = Input(UInt(ctrlWidth.W))  // Control signal for DSP module
+class DSPModuleIO extends Bundle {
+    val audioIn = Input(SInt(DATA_WIDTH.W))  // Data input for DSP
+    val audioOut = Output(SInt(DATA_WIDTH.W))// Data output for DSP
+    val ctrlSig = Input(UInt(CTRL_WIDTH.W))  // Control signal for DSP module
 }
