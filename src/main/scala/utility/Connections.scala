@@ -16,3 +16,9 @@ class TriStateBusDriverIO(width: Int) extends Bundle{
     val bus = Analog(width.W)            // the tri-state bus
     val drive = Input(Bool())            // when asserted the module drives the bus
 }
+
+class DSPModuleIO(dataWidth: Int, ctrlWidth: Int) extends Bundle {
+    val audioIn = Input(SInt(dataWidth.W))  // Data input for DSP
+    val audioOut = Output(SInt(dataWidth.W))// Data output for DSP
+    val ctrlSig = Input(UInt(ctrlWidth.W))  // Control signal for DSP module
+}
