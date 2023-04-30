@@ -61,7 +61,7 @@ dirs:
 .PHONY: diagram
 diagram:
 	if [ ! -f $(DIAGRAMTARGET) ]; then $(MAKE) run; fi # TODO make depend on DIAGRAMTARGET
-	cd $(DIAGRAMMERDIR); ./diagram.sh -i $(DIAGRAMTARGET) --target-dir $(HWBUILDDIR)
+	cd $(DIAGRAMMERDIR); ./diagram.sh -i $(DIAGRAMTARGET) --target-dir $(HWBUILDDIR) --open-command xdg-open
 
 # Cleanup working directory
 .PHONY: clean
