@@ -7,10 +7,10 @@ import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
 import firrtl.Utils
 
-class FIRFilterSpec extends AnyFlatSpec with ChiselScalatestTester {
+class VolumeControlSpec extends AnyFlatSpec with ChiselScalatestTester {
 
-  "FIRFilter" should "play" in {
-    test(new FIRFilter(Seq(1.S, 1.S, 1.S, 1.S, 1.S))).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+  "VolumeControl" should "play" in {
+    test(new VolumeControl()).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
       val samples = getFileSamples("sample.wav")
       val outSamples = new Array[Short](samples.length)
 
@@ -19,7 +19,8 @@ class FIRFilterSpec extends AnyFlatSpec with ChiselScalatestTester {
       // no timeout, as a bunch of 0 samples would lead to a timeout.
       dut.clock.setTimeout(0)
       dut.io.clk.poke(true.B)
-      dut.io.ctrlSig.poke("b11111111".U)
+      // Set volume of module
+      dut.io.ctrlSig.poke("b01000000".U)
 
       // Write the samples
       val th = fork {
@@ -49,3 +50,4 @@ class FIRFilterSpec extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 }
+
