@@ -13,7 +13,7 @@ To run a simulation do:
 ```
 make test
 ```
-
+Note: Some tests require a sound file in the root directory named ```sample.wave```.
 To quickly see waveforms from simulation do:
 ```
 make wave
@@ -25,7 +25,9 @@ make test wave
 
 More options for configuring make targets can be specified in a config.mk file. An example could be:
 ```
-TESTTARGET = io.WM8731ControllerSpec
-WAVETARGET = test_run_dir/WM8731ControllerSpec_should_work/WM8731Controller.vcd
+TESTTARGET = audio.AudioProcessingFrameSpec
+WAVETARGET = test_run_dir/AudioProcessingFrame_should_play/AudioProcessingFrame.vcd
 WAVECONFIG = test_run_dir/wave.gtkw
+DIAGRAMTARGET = $(CURDIR)/build/FIRFilter.fir
+DIAGRAMMERDIR = ~/repos/diagrammer
 ```
