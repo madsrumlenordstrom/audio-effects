@@ -22,5 +22,6 @@ class DSPModuleIO extends Bundle {
     val audioIn = Input(SInt(DATA_WIDTH.W))  // Data input for DSP
     val audioOut = Output(SInt(DATA_WIDTH.W))// Data output for DSP
     val ctrlSig = Input(UInt(CTRL_WIDTH.W))  // Control signal for DSP module
+    val write = Input(Bool())                // Signal for writing to control register
     val clk = Input(Bool())                  // Audio clock
 }

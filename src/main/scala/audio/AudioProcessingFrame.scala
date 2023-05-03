@@ -4,28 +4,43 @@ import chisel3._
 
 import utility.Constants.{DATA_WIDTH, CTRL_WIDTH}
 import chisel3.util.log2Up
+import chisel3.util.RegEnable
 
-class AudioProcessingFrameControlIO(effects: Seq[DSPModule]) extends Bundle {
+class AudioProcessingFrameControlIO extends Bundle {
   val write = Input(Bool())
-  val dspAddr = Input(UInt(log2Up(effects.length).W))
+  val dspAddr = Input(UInt(log2Up(DSPModules.effects.length).W))
   val dspCtrl = Input(UInt(CTRL_WIDTH.W))
 }
 
-class AudioProcessingFrameIO(effects: Seq[DSPModule]) extends Bundle {
+class AudioProcessingFrameIO extends AudioProcessingFrameControlIO {
   // Audio input and output (L/R)
   val inData = Input(SInt(DATA_WIDTH.W))
   val outData = Output(SInt(DATA_WIDTH.W))
-  val ctrl = new AudioProcessingFrameControlIO(effects)
+  val clk = Input(Bool())
 }
 
-class AudioProcessingFrame(effects: Seq[DSPModule]) extends Module {
-  val io = IO(new AudioProcessingFrameIO(effects))
+class AudioProcessingFrame extends Module {
+  val io = IO(new AudioProcessingFrameIO())
 
-  // Registers for control values
-  val ctrlRegs = Reg(Vec(effects.length, UInt(CTRL_WIDTH.W)))
-  when (io.ctrl.write) {
-    ctrlRegs(io.ctrl.dspAddr) := io.ctrl.dspCtrl
+  // Initialize modules
+  val effects = (0 until DSPModules.effects.length).map(i => DSPModules.effects(i))
+
+  // Print configuration
+  println("Audio chain is configured as:")
+  effects.foreach(effect => print("-> " + effect.desiredName + " "))
+  println()
+
+  // Send signals modules
+  val write = Wire(Vec(effects.length, Bool()))
+  for (i <- 0 until effects.length) {
+    write(i) := WireDefault(false.B)
+    effects(i).io.ctrlSig := io.dspCtrl
+    effects(i).io.clk := io.clk
+    effects(i).io.write := write(i)
   }
+
+  // Send write signal to modules
+  write(io.dspAddr) := io.write
 
   // Chain effects modules
   effects(0).io.audioIn := io.inData
@@ -33,10 +48,5 @@ class AudioProcessingFrame(effects: Seq[DSPModule]) extends Module {
     effects(i).io.audioIn := effects(i - 1).io.audioOut
   }
 
-  // Send control signal to modules
-  for (i <- 0 until effects.length) {
-    effects(i).io.ctrlSig := ctrlRegs(i)
-  }
-  
   io.outData := effects(effects.length - 1).io.audioOut
 }
