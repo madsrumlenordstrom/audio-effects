@@ -14,6 +14,7 @@ To run a simulation do:
 make test
 ```
 Note: Some tests require a sound file in the root directory named ```sample.wave```.
+
 To quickly see waveforms from simulation do:
 ```
 make wave
