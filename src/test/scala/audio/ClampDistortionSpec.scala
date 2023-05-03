@@ -3,16 +3,14 @@ package audio
 import audio.Sounds._
 
 import chisel3._
-import chisel3.util.Cat
 import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
 import firrtl.Utils
-import utility.Constants.CTRL_WIDTH
 
-class VolumeControlSpec extends AnyFlatSpec with ChiselScalatestTester {
+class ClampDistortionSpec extends AnyFlatSpec with ChiselScalatestTester {
 
-  "VolumeControl" should "play" in {
-    test(new VolumeControl()).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+  "ClampDistortion" should "play" in {
+    test(new ClampDistortion()).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
       // Function to write to the DSP module
       def sendCtrlSig(ctrl: UInt):Unit={
         dut.io.ctrlSig.poke(ctrl)

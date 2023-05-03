@@ -3,25 +3,26 @@ package audio
 import audio.Sounds._
 
 import chisel3._
-import chisel3.util.Cat
 import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
-import firrtl.Utils
-import utility.Constants.CTRL_WIDTH
+import firrtl.Utils// Specify which effects to use
 
-class VolumeControlSpec extends AnyFlatSpec with ChiselScalatestTester {
+class AudioProcessingFrameSpec extends AnyFlatSpec with ChiselScalatestTester {
 
-  "VolumeControl" should "play" in {
-    test(new VolumeControl()).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
-      // Function to write to the DSP module
-      def sendCtrlSig(ctrl: UInt):Unit={
-        dut.io.ctrlSig.poke(ctrl)
+  "AudioProcessingFrame" should "play" in {
+    test(new AudioProcessingFrame()).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+      // Function to write to a DSP module
+      def sendCtrlSig(addr: UInt, ctrl: UInt):Unit={
+        dut.io.dspAddr.poke(addr)
+        dut.io.dspCtrl.poke(ctrl)
         dut.io.write.poke(true.B)
         dut.clock.step()
-        dut.io.ctrlSig.poke(0.U)
+        dut.io.dspAddr.poke(0.U)
+        dut.io.dspCtrl.poke(0.U)
         dut.io.write.poke(false.B)
       }
 
+      // Get audio file
       val samples = getFileSamples("sample.wav")
       val outSamples = new Array[Short](samples.length)
 
@@ -29,12 +30,19 @@ class VolumeControlSpec extends AnyFlatSpec with ChiselScalatestTester {
       
       // no timeout, as a bunch of 0 samples would lead to a timeout.
       dut.clock.setTimeout(0)
+
+      // Default values
       dut.io.clk.poke(true.B)
+      dut.io.write.poke(false.B)
+
+      // Configure modules
+      sendCtrlSig(0.U, 128.U)
+      sendCtrlSig(1.U, 32.U)
 
       // Write the samples
       val th = fork {
         for (s <- samples) {
-          dut.io.audioIn.poke(s.asSInt)
+          dut.io.inData.poke(s.asSInt)
           dut.clock.step()
         }
         finished = true
@@ -43,7 +51,7 @@ class VolumeControlSpec extends AnyFlatSpec with ChiselScalatestTester {
       // Playing in real-time does not work, so record the result
       var idx = 0
       while (!finished) {
-        val s = dut.io.audioOut.peek().litValue.toShort
+        val s = dut.io.outData.peek().litValue.toShort
         outSamples(idx) = s
         idx += 1
         dut.clock.step()

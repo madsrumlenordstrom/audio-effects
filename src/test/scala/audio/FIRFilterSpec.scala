@@ -11,6 +11,15 @@ class FIRFilterSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   "FIRFilter" should "play" in {
     test(new FIRFilter(Seq(1.S, 1.S, 1.S, 1.S, 1.S))).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+      // Function to write to the DSP module
+      def sendCtrlSig(ctrl: UInt):Unit={
+        dut.io.ctrlSig.poke(ctrl)
+        dut.io.write.poke(true.B)
+        dut.clock.step()
+        dut.io.ctrlSig.poke(0.U)
+        dut.io.write.poke(false.B)
+      }
+      
       val samples = getFileSamples("sample.wav")
       val outSamples = new Array[Short](samples.length)
 
@@ -39,11 +48,6 @@ class FIRFilterSpec extends AnyFlatSpec with ChiselScalatestTester {
         dut.clock.step()
       }
       th.join()
-
-      // Uncomment for direct playback
-      //startPlayer
-      //playArray(outSamples)      
-      //stopPlayer
 
       saveArray(outSamples, "sample_out.wav")
     }
