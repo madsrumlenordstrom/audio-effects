@@ -30,7 +30,7 @@ class Distortion() extends DSPModule {
 	val inValAbs = inVal.abs.asUInt.min(maxSignal.U).tail(1)
 	val regInValSign = ShiftRegister(inVal(DATA_WIDTH - 1), 2) // delay by two stages
 
-	val gain = io.ctrlSig // get gain value from control signal
+	val gain = ctrlReg // get gain value from control signal
 	val gainMul = inValAbs * gain
 	val regInValGain = RegNext(gainMul)
 
