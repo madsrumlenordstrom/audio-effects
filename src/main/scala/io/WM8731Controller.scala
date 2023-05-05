@@ -34,6 +34,7 @@ class WM8731IO extends Bundle {
 }
 
 class WM8731ControllerIO extends Bundle {
+  val clock50 = Input(Bool())
   val ready = Output(Bool())            // the controller has completed the setup over i2c
   val error = Output(Bool())            // indicate some error has happened
   val errorCode = Output(UInt(16.W))    // return error code to be displayed
@@ -70,7 +71,7 @@ class WM8731Controller extends Module {
 
   // setup master clock
   val audioPLL = Module(new AudioPLLDriver())
-  audioPLL.io.clock := this.clock
+  audioPLL.io.clock := io.clock50.asClock
   audioPLL.io.reset := this.reset
   io.wm8731io.xck := audioPLL.io.c0
 
@@ -79,7 +80,7 @@ class WM8731Controller extends Module {
   // need to find out how to tell chisel it should compile it
   // even though instantiation is via inlined verilog in AudioPLLDriver..
   val dummyAudioPLL = Module(new AudioPLL)
-  dummyAudioPLL.io.inclk0 := this.clock
+  dummyAudioPLL.io.inclk0 := io.clock50.asClock
   dummyAudioPLL.io.areset := this.reset
 
   val i2sIn = Module(new I2S(0, 24))

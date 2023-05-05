@@ -7,6 +7,7 @@ import utility.Constants._
 
 class Top() extends Module {
   val io = IO(new Bundle {
+    val clock50 = Input(Bool())
     val ledio = new LEDIO
     val wm8731io = new WM8731IO
   })
@@ -28,6 +29,7 @@ class Top() extends Module {
     io.ledio.gled(6) := ~io.wm8731io.adc.adclrck
     
     val wm8731Ctrl = Module(new WM8731Controller())
+    wm8731Ctrl.io.clock50 := io.clock50
     // connect pins from top module to controller module
     wm8731Ctrl.io.wm8731io <> io.wm8731io
 
