@@ -21,12 +21,14 @@ class Top() extends Module {
     // gled8 - on
     io.ledio.gled(8) := true.B
 
-    io.ledio.gled(1) := io.wm8731io.bclk
-    io.ledio.gled(2) := ~io.wm8731io.bclk
-    io.ledio.gled(3) := io.wm8731io.xck
-    io.ledio.gled(4) := ~io.wm8731io.xck
+    //io.ledio.gled(1) := io.wm8731io.i2c.sclk
+    //io.ledio.gled(2) := ~io.wm8731io.i2c.sclk
+    //io.ledio.gled(3) := io.wm8731io.xck
+    //io.ledio.gled(4) := ~io.wm8731io.xck
     io.ledio.gled(5) := io.wm8731io.adc.adclrck
     io.ledio.gled(6) := ~io.wm8731io.adc.adclrck
+    io.ledio.gled(7) := io.wm8731io.bclk
+    io.ledio.gled(8) := ~io.wm8731io.bclk
     
     val wm8731Ctrl = Module(new WM8731Controller())
     wm8731Ctrl.io.clock50 := io.clock50
