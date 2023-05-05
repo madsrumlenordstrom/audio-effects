@@ -57,9 +57,6 @@ class Top() extends Module {
       }
       maxLevelReg := 0.S
     }
-    for (i <- 0 until 18) {
-      io.ledio.rled(i) := rledReg(i)
-    }
 
     // gled0 indicates whether wm8731 ready
     io.ledio.gled(0) := wm8731Ctrl.io.ready
@@ -68,6 +65,10 @@ class Top() extends Module {
     when (wm8731Ctrl.io.error) {
       ledCtrl.io.error := true.B
       ledCtrl.io.errorCode := wm8731Ctrl.io.errorCode
+    } .otherwise {
+      for (i <- 0 until 18) {
+        io.ledio.rled(i) := rledReg(i)
+      }
     }
   }
 }
