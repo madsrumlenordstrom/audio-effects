@@ -33,7 +33,7 @@ DIAGRAMTARGET = $(CURDIR)/build/FIRFilter.fir
 DIAGRAMMERDIR = ~/repos/diagrammer
 ```
 
-The signal path is defined in ´´´src/main/scala/audio/DSPModules.scala´´´:
+The signal path is defined in ```src/main/scala/audio/DSPModules.scala```:
 ```
 object DSPModules {
   // Specify which effects to use
