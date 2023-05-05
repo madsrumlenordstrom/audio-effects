@@ -53,9 +53,6 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
   val channel = RegInit(0.U(1.W))
   // counted from msb to lsb, never overlap
   val currentTick = RegInit(0.U(32.W))
-  when (bclk_negedge) {
-    currentTick := currentTick + 1.U
-  }
 
   when (lrc_posedge) {
     // sync frames on lrc posedge
@@ -86,6 +83,7 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     when (bclk_posedge) {
       when (currentTick <= channelWidth.U) {
         tempDataReg(channel) := tempDataReg(channel)(channelWidth - 1, 0) ## datReg
+        currentTick := currentTick + 1.U
       }
     }
   }
@@ -100,6 +98,7 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
       changeOutput := false.B
       when (currentTick <= channelWidth.U) {
         datReg := tempDataReg(channel)(channelWidth.U - currentTick) // take msb
+        currentTick := currentTick + 1.U
       }
     }
   }
