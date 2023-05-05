@@ -34,7 +34,7 @@ DIAGRAMMERDIR = ~/repos/diagrammer
 ```
 
 The signal path is defined in ´´´src/main/scala/audio/DSPModules.scala´´´:
-´´´
+```
 object DSPModules {
   // Specify which effects to use
   val effects = List(
@@ -43,5 +43,5 @@ object DSPModules {
     Module(new VolumeControl(0x0000)),
   )
 }
-´´´
+```
 This would create the signal path: FIRFilter -> ClampDistortion -> VolumeControl
