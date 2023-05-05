@@ -32,3 +32,16 @@ WAVECONFIG = test_run_dir/wave.gtkw
 DIAGRAMTARGET = $(CURDIR)/build/FIRFilter.fir
 DIAGRAMMERDIR = ~/repos/diagrammer
 ```
+
+The signal path is defined in ´´´src/main/scala/audio/DSPModules.scala´´´:
+´´´
+object DSPModules {
+  // Specify which effects to use
+  val effects = List(
+    Module(new FIRFilter(Seq(1.S,2.S,3.S))),
+    Module(new ClampDistortion(0x0000)),
+    Module(new VolumeControl(0x0000)),
+  )
+}
+´´´
+This would create the signal path: FIRFilter -> ClampDistortion -> VolumeControl
