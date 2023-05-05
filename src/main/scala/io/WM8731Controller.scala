@@ -50,7 +50,7 @@ class WM8731ControllerIO extends Bundle {
 object WM8731Controller {
   // Note: currently supports write only
   object State extends ChiselEnum {
-    val inReset, initRegs, resetDevice, outputsPowerDown, setLeftLineIn, setRightLineIn, setFormat, setSampling, setAnalogPathControl, setDigitalPathControl, setActivate, powerOn, waitI2C, ready, error = Value
+    val inReset, initRegs, resetDevice, outputsPowerDown, setLeftOutput, setRightOutput, setLeftLineIn, setRightLineIn, setFormat, setSampling, setAnalogPathControl, setDigitalPathControl, setActivate, powerOn, waitI2C, ready, error = Value
   }
 }
 
@@ -134,21 +134,39 @@ class WM8731Controller extends Module {
       i2cCtrlInDataReg  := "b000010000".U // outputs power down
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
-      nextStateAfterI2C := setLeftLineIn
+      nextStateAfterI2C := setLeftOutput
+    }
+    is (setLeftOutput) {
+      i2cCtrlRegAddrReg := "b0000010".U // left line out
+      //i2cCtrlInDataReg  := "b001101000".U // Vol=a bit quieter
+      i2cCtrlInDataReg  := "b001100001".U // Vol=a bit quieter
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+      nextStateAfterI2C := setRightOutput
+    }
+    is (setRightOutput) {
+      i2cCtrlRegAddrReg := "b0000011".U // right line out
+      //i2cCtrlInDataReg  := "b001101000".U // Vol=a bit quieter
+      i2cCtrlInDataReg  := "b001100001".U // Vol=a bit quieter
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+     nextStateAfterI2C := setLeftLineIn
     }
     is (setLeftLineIn) {
       i2cCtrlRegAddrReg := "b0000000".U // left line in
-      i2cCtrlInDataReg  := "b000010111".U // Vol=default, mute=0, load_both=0
+      i2cCtrlInDataReg  := "b000010011".U // Vol=quieter, mute=0, load_both=0
+      //i2cCtrlInDataReg  := "b000010111".U // Vol=default, mute=0, load_both=0
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setRightLineIn
     }
     is (setRightLineIn) {
       i2cCtrlRegAddrReg := "b0000001".U // right line in
-      i2cCtrlInDataReg  := "b000010111".U // Vol=default, mute=0, load_both=0
+      i2cCtrlInDataReg  := "b000010011".U // Vol=quieter, mute=0, load_both=0
+      //i2cCtrlInDataReg  := "b000010111".U // Vol=default, mute=0, load_both=0
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
-     nextStateAfterI2C := setFormat
+      nextStateAfterI2C := setFormat
     }
     is (setFormat) {
       i2cCtrlRegAddrReg := "b0000111".U // digital audio interface format
