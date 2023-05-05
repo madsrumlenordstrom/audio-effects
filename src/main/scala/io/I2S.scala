@@ -36,7 +36,7 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
 
   val datReg = RegInit(false.B)
   // msb is ignored in protocol
-  val tempDataReg = Reg(Vec(2, UInt((channelWidth + 1).W)))
+  val tempDataReg = Reg(Vec(2, UInt(channelWidth.W)))
   val syncReg = RegInit(false.B)
   io.sync := syncReg
 
@@ -57,11 +57,11 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
   when (lrc_posedge) {
     // sync frames on lrc posedge
     if (isOutput == 0) {
-      dataReg(0) := tempDataReg(0)(channelWidth - 1, 0)
-      dataReg(1) := tempDataReg(1)(channelWidth - 1, 0)
+      dataReg(0) := tempDataReg(0)
+      dataReg(1) := tempDataReg(1)
     } else {
-      tempDataReg(0) := 0.U(1.W) ## dataReg(0)
-      tempDataReg(1) := 0.U(1.W) ## dataReg(1)
+      tempDataReg(0) := dataReg(0)
+      tempDataReg(1) := dataReg(1)
     }
     // signal that data is ready, use register to ensure registers already updated
     syncReg := true.B
@@ -81,8 +81,8 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     // bclk posedge shouldn't ever happen on lrc posedge
     // so all registers' values should be already updated
     when (bclk_posedge) {
-      when (currentTick <= channelWidth.U) {
-        tempDataReg(channel) := tempDataReg(channel)(channelWidth - 1, 0) ## datReg
+      when (currentTick < channelWidth.U) {
+        tempDataReg(channel) := tempDataReg(channel)(channelWidth - 2, 0) ## datReg
         currentTick := currentTick + 1.U
       }
     }
@@ -96,8 +96,8 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     }
     when (changeOutput) {
       changeOutput := false.B
-      when (currentTick <= channelWidth.U) {
-        datReg := tempDataReg(channel)(channelWidth.U - currentTick) // take msb
+      when (currentTick < channelWidth.U) {
+        datReg := tempDataReg(channel)(channelWidth.U - currentTick - 1.U) // take msb
         currentTick := currentTick + 1.U
       }
     }

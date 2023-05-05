@@ -93,11 +93,11 @@ class WM8731Controller extends Module {
 
   when (io.combineChannels) {
     // if combine channels, calculate mean value between left and right
-    //io.inData := (i2sIn.io.data(0).asSInt + i2sIn.io.data(1).asSInt) / 2.S
-    io.inData := i2sIn.io.data(0).asSInt
+    io.inData := (i2sIn.io.data(0).asSInt + i2sIn.io.data(1).asSInt) / 2.S
+    //io.inData := i2sIn.io.data(0).asSInt
   } .otherwise {
     // take the first one
-    io.inData := i2sIn.io.data(1).asSInt
+    io.inData := i2sIn.io.data(0).asSInt
   }
 
   val i2sOut = Module(new I2S(1, 24))
@@ -170,7 +170,7 @@ class WM8731Controller extends Module {
     }
     is (setFormat) {
       i2cCtrlRegAddrReg := "b0000111".U // digital audio interface format
-      i2cCtrlInDataReg  := "b001001010".U // Data = I2S, Bit length = 24 bits, master = on
+      i2cCtrlInDataReg  := "b001001001".U // Data = LJust, Bit length = 24 bits, master = on
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setSampling
