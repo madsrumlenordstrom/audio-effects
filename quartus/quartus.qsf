@@ -90,6 +90,8 @@ set_location_assignment PIN_AA27 -to io_ledio_gled_6
 set_location_assignment PIN_AA24 -to io_ledio_gled_7
 set_location_assignment PIN_AC14 -to io_ledio_gled_8
 
+set_location_assignment PIN_AA23 -to io_sw0
+
 
 set_global_assignment -name VERILOG_FILE ../build/AudioPLLDriver.v
 set_global_assignment -name VERILOG_FILE ../build/TriStateBusDriver.v

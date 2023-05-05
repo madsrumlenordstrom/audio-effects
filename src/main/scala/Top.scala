@@ -10,6 +10,7 @@ class Top() extends Module {
     val clock50 = Input(Bool())
     val ledio = new LEDIO
     val wm8731io = new WM8731IO
+    val sw0 = Input(Bool())
   })
 
   withReset(!reset.asBool) {
@@ -34,20 +35,18 @@ class Top() extends Module {
     wm8731Ctrl.io.clock50 := io.clock50
     // connect pins from top module to controller module
     wm8731Ctrl.io.wm8731io <> io.wm8731io
+    wm8731Ctrl.io.combineChannels := io.sw0
 
     // TODO: move this connection to DSP module
-    wm8731Ctrl.io.outData(0) := wm8731Ctrl.io.inData(0)
-    wm8731Ctrl.io.outData(1) := wm8731Ctrl.io.inData(1)
-    //// demonstrate single channel
-    //wm8731Ctrl.io.outData(1) := 0.S
+    wm8731Ctrl.io.outData := wm8731Ctrl.io.inData
 
     // TODO: move to a module
     val rledReg = Reg(Vec(18, Bool()))
     // use rldeds to display current input, 20 times a second
     val (_, counterWrap) = Counter(true.B, CYCLONE_II_FREQ / 20)
     val maxLevelReg = RegInit(0.S(24.W))
-    when (wm8731Ctrl.io.inData(1) > maxLevelReg) {
-      maxLevelReg := wm8731Ctrl.io.inData(1)
+    when (wm8731Ctrl.io.inData > maxLevelReg) {
+      maxLevelReg := wm8731Ctrl.io.inData
     }
     when (counterWrap) {
       for (i <- 0 until 18) {

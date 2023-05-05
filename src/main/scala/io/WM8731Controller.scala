@@ -40,8 +40,11 @@ class WM8731ControllerIO extends Bundle {
   val errorCode = Output(UInt(16.W))    // return error code to be displayed
   val wm8731io = new WM8731IO           // board pins
 
-  val inData = Vec(2, Output(SInt(24.W)))
-  val outData = Vec(2, Input(SInt(24.W)))
+  // Mono
+  val inData = Output(SInt(24.W))
+  val outData = Input(SInt(24.W))
+
+  val combineChannels = Input(Bool())   // true to combine channel, false to select first
 }
 
 object WM8731Controller {
@@ -87,15 +90,22 @@ class WM8731Controller extends Module {
   i2sIn.io.bclk := io.wm8731io.bclk
   i2sIn.io.lrc := io.wm8731io.adc.adclrck
   i2sIn.io.dat := io.wm8731io.adc.adcdat
-  io.inData(0) := i2sIn.io.data(0).asSInt
-  io.inData(1) := i2sIn.io.data(1).asSInt
+
+  when (io.combineChannels) {
+    // if combine channels, calculate mean value between left and right
+    //io.inData := (i2sIn.io.data(0).asSInt + i2sIn.io.data(1).asSInt) / 2.S
+    io.inData := i2sIn.io.data(0).asSInt
+  } .otherwise {
+    // take the first one
+    io.inData := i2sIn.io.data(1).asSInt
+  }
 
   val i2sOut = Module(new I2S(1, 24))
   i2sOut.io.bclk := io.wm8731io.bclk
   i2sOut.io.lrc := io.wm8731io.dac.daclrck
   io.wm8731io.dac.dacdat := i2sOut.io.dat
-  i2sOut.io.data(0) := io.outData(0).asUInt
-  i2sOut.io.data(1) := io.outData(1).asUInt
+  i2sOut.io.data(0) := io.outData.asUInt
+  i2sOut.io.data(1) := io.outData.asUInt
   
   val i2cCtrl = Module(new I2CController(WM8731_I2C_ADDR, WM8731_I2C_FREQ))
   i2cCtrl.io.i2cio <> io.wm8731io.i2c
