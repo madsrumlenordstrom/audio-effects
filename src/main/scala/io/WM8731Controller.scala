@@ -109,10 +109,8 @@ class WM8731Controller extends Module {
   } .otherwise {
     io.wm8731io.dac.dacdat := i2sOut.io.dat
   }
-  //i2sOut.io.data(0) := io.outData.asUInt
-  //i2sOut.io.data(1) := io.outData.asUInt
-  i2sOut.io.data(0) := i2sIn.io.data(0)
-  i2sOut.io.data(1) := i2sIn.io.data(1)
+  i2sOut.io.data(0) := io.outData.asUInt
+  i2sOut.io.data(1) := io.outData.asUInt
   
   val i2cCtrl = Module(new I2CController(WM8731_I2C_ADDR, WM8731_I2C_FREQ))
   i2cCtrl.io.i2cio <> io.wm8731io.i2c
