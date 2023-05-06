@@ -25,8 +25,7 @@ class I2SIO(isOutput: Int, channelWidth: Int) extends Bundle {
   val sync = Output(Bool())
 }
 
-// Actually not exactly I2S but rather Left justified, which is the same
-// apart from missing the one bit of padding
+// Actually not exactly I2S but rather DSP mode
 // Either I2S(0, 24) to get data from WM8731 or I2S(1, 24) to set data to WM8731
 class I2S(isOutput: Int, channelWidth: Int) extends Module {
   val io = IO(new I2SIO(isOutput, channelWidth))
@@ -52,11 +51,12 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     //io.dat := datReg
   }
 
-  val channel = RegInit(0.U(1.W))
-  val bitsLeft = RegInit(0.U(5.W))
+  val channelReg = RegInit(0.U(1.W))
+  val bitsLeftReg = RegInit(0.U(5.W))
+  val lastLrcOnBclkPosedgeReg = RegInit(false.B)
 
-  when (lrc_posedge) {
-    // sync frames on lrc posedge
+  when (bclk_posedge && io.lrc) {
+    // in mid sync
     if (isOutput == 0) {
       dataReg(0) := tempDataReg(0)
       dataReg(1) := tempDataReg(1)
@@ -67,52 +67,55 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     // signal that data is ready, use register to ensure registers already updated
     syncReg := true.B
 
-    bitsLeft := channelWidth.U
-    channel := 0.U // left channel
+    bitsLeftReg := channelWidth.U
+    channelReg := 0.U // left channel
   } .otherwise {
     syncReg := false.B
   }
 
-  when (lrc_negedge) {
-    bitsLeft := channelWidth.U
-    channel := 1.U // right channel
+  when (bclk_posedge) {
+    lastLrcOnBclkPosedgeReg := io.lrc
   }
 
   if (isOutput == 0) {
     // bclk posedge shouldn't ever happen on lrc posedge or negedge
     // so all registers' values should be already updated
-    when (bclk_posedge) {
-      when (bitsLeft > 0.U) {
-        tempDataReg(channel) := tempDataReg(channel)(channelWidth - 2, 0) ## io.dat
-        bitsLeft := bitsLeft - 1.U
+    when (bclk_posedge && !io.lrc) {
+      when (bitsLeftReg > 0.U) {
+        tempDataReg(channelReg) := tempDataReg(channelReg)(channelWidth - 2, 0) ## io.dat
+        //bitsLeftReg := bitsLeftReg - 1.U
+        when (channelReg === 0.U && bitsLeftReg === 1.U) {
+          channelReg := 1.U
+          bitsLeftReg := channelWidth.U
+        } .otherwise {
+          bitsLeftReg := bitsLeftReg - 1.U
+        }
       }
     }
+    // // will happen after bclk posedge because of bitLeft dec
+    // when (channelReg === 0.U && bitsLeftReg === 0.U) {
+    //   // second channel follows right after
+    //   channelReg := 1.U
+    //   bitsLeftReg := channelWidth.U
+    // }
   }
  
   if (isOutput == 1) {
-    val changeOutput = RegInit(false.B)
-    // update output dat one clock after bclk negedge so all regs are synced
-    when (bclk_negedge) {
-      changeOutput := true.B
+    // don't change if right after sync, the sync has already set it for us
+    when (bclk_negedge && !lastLrcOnBclkPosedgeReg && bitsLeftReg > 0.U) {
+      // if we finished with the first channel, switch to the second
+      when (channelReg === 0.U && bitsLeftReg === 1.U) {
+        channelReg := 1.U
+        bitsLeftReg := channelWidth.U
+      } .otherwise {
+        bitsLeftReg := bitsLeftReg - 1.U
+      }
     }
-    // if we are beginning a new word on channel 0, it might be that lrc_posedge not yet
-    // happened, thus we'll get out of sync on the data and tick
-    // so as long as we are on the channel 1 and have finished our ticks, wait (that will be
-    // resolved by lrc_posedge handler)
-    when (changeOutput && bitsLeft > 0.U) {
-      changeOutput := false.B
-      bitsLeft := bitsLeft - 1.U
-      //when (bitsLeft > 0.U) {
-      //  bitsLeft := bitsLeft - 1.U
-      //}
+
+    when (bitsLeftReg > 0.U) {
+      io.dat := tempDataReg(channelReg)(bitsLeftReg - 1.U)
+    } .otherwise {
+      io.dat := false.B
     }
-    when (bclk_posedge) {
-      // don't change output if we missed the current tick. otherwise the previous
-      // check won't be syncing properly, as changeOutput from a far previous blkc_negedge
-      // will force the currentTick to be advanced on lrc posedge, even if blk negedge has not yet
-      // happened
-      changeOutput := false.B
-    }
-    io.dat := tempDataReg(channel)(bitsLeft - 1.U)
   }
 }

@@ -177,7 +177,8 @@ class WM8731Controller extends Module {
     }
     is (setFormat) {
       i2cCtrlRegAddrReg := "b0000111".U // digital audio interface format
-      i2cCtrlInDataReg  := "b001001001".U // Data = LJust, Bit length = 24 bits, master = on
+      //i2cCtrlInDataReg  := "b001001001".U // Data = LJust, Bit length = 24 bits, master = on
+      i2cCtrlInDataReg  := "b001011011".U // Data = dsp, msb on 2nd bit, Bit length = 24 bits, master = on
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setSampling
