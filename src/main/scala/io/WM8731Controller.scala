@@ -45,6 +45,7 @@ class WM8731ControllerIO extends Bundle {
   val outData = Input(SInt(24.W))
 
   val combineChannels = Input(Bool())   // true to combine channel, false to select first
+  val bypass = Input(Bool())
 }
 
 object WM8731Controller {
@@ -103,7 +104,11 @@ class WM8731Controller extends Module {
   val i2sOut = Module(new I2S(1, 24))
   i2sOut.io.bclk := io.wm8731io.bclk
   i2sOut.io.lrc := io.wm8731io.dac.daclrck
-  io.wm8731io.dac.dacdat := i2sOut.io.dat
+  when (io.bypass) {
+    io.wm8731io.dac.dacdat := io.wm8731io.adc.adcdat
+  } .otherwise {
+    io.wm8731io.dac.dacdat := i2sOut.io.dat
+  }
   //i2sOut.io.data(0) := io.outData.asUInt
   //i2sOut.io.data(1) := io.outData.asUInt
   i2sOut.io.data(0) := i2sIn.io.data(0)
