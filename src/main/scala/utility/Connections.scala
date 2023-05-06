@@ -6,7 +6,7 @@ import utility.Constants.{DATA_WIDTH, CTRL_WIDTH}
 
 // Bundle for the assigned pins
 class I2CIO extends Bundle {
-    val sclk = Output(Bool())
+    val sclk = Analog(1.W)
     val sda = Analog(1.W)
 }
 

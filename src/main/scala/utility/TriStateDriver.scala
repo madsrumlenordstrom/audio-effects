@@ -16,7 +16,7 @@ class TriStateBusDriver(width: Int) extends BlackBox with HasBlackBoxInline {
        |    inout [${width-1}:0] bus,
        |    input drive);
        |
-       |    assign bus = drive ? out : {(${width}){1'bz}};
+       |    assign bus = drive ? (out ? 1'bz : 1'b0) : {(${width}){1'bz}};
        |    assign in = bus;
        |endmodule
        |""".stripMargin

@@ -7,8 +7,10 @@ import utility.Constants._
 
 class Top() extends Module {
   val io = IO(new Bundle {
+    val clock50 = Input(Bool())
     val ledio = new LEDIO
     val wm8731io = new WM8731IO
+    val sw0 = Input(Bool())
   })
 
   withReset(!reset.asBool) {
@@ -20,30 +22,31 @@ class Top() extends Module {
     // gled8 - on
     io.ledio.gled(8) := true.B
 
-    io.ledio.gled(1) := io.wm8731io.bclk
-    io.ledio.gled(2) := ~io.wm8731io.bclk
-    io.ledio.gled(3) := io.wm8731io.xck
-    io.ledio.gled(4) := ~io.wm8731io.xck
+    //io.ledio.gled(1) := io.wm8731io.i2c.sclk
+    //io.ledio.gled(2) := ~io.wm8731io.i2c.sclk
+    //io.ledio.gled(3) := io.wm8731io.xck
+    //io.ledio.gled(4) := ~io.wm8731io.xck
     io.ledio.gled(5) := io.wm8731io.adc.adclrck
     io.ledio.gled(6) := ~io.wm8731io.adc.adclrck
+    io.ledio.gled(7) := io.wm8731io.bclk
+    io.ledio.gled(8) := ~io.wm8731io.bclk
     
     val wm8731Ctrl = Module(new WM8731Controller())
+    wm8731Ctrl.io.clock50 := io.clock50
     // connect pins from top module to controller module
     wm8731Ctrl.io.wm8731io <> io.wm8731io
+    wm8731Ctrl.io.combineChannels := io.sw0
 
     // TODO: move this connection to DSP module
-    wm8731Ctrl.io.outData(0) := wm8731Ctrl.io.inData(0)
-    wm8731Ctrl.io.outData(1) := wm8731Ctrl.io.inData(1)
-    //// demonstrate single channel
-    //wm8731Ctrl.io.outData(1) := 0.S
+    wm8731Ctrl.io.outData := wm8731Ctrl.io.inData
 
     // TODO: move to a module
     val rledReg = Reg(Vec(18, Bool()))
     // use rldeds to display current input, 20 times a second
     val (_, counterWrap) = Counter(true.B, CYCLONE_II_FREQ / 20)
     val maxLevelReg = RegInit(0.S(24.W))
-    when (wm8731Ctrl.io.inData(1) > maxLevelReg) {
-      maxLevelReg := wm8731Ctrl.io.inData(1)
+    when (wm8731Ctrl.io.inData > maxLevelReg) {
+      maxLevelReg := wm8731Ctrl.io.inData
     }
     when (counterWrap) {
       for (i <- 0 until 18) {
@@ -55,9 +58,6 @@ class Top() extends Module {
       }
       maxLevelReg := 0.S
     }
-    for (i <- 0 until 18) {
-      io.ledio.rled(i) := rledReg(i)
-    }
 
     // gled0 indicates whether wm8731 ready
     io.ledio.gled(0) := wm8731Ctrl.io.ready
@@ -66,6 +66,10 @@ class Top() extends Module {
     when (wm8731Ctrl.io.error) {
       ledCtrl.io.error := true.B
       ledCtrl.io.errorCode := wm8731Ctrl.io.errorCode
+    } .otherwise {
+      for (i <- 0 until 18) {
+        io.ledio.rled(i) := rledReg(i)
+      }
     }
   }
 }

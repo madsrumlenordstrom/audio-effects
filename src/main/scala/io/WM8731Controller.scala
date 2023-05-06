@@ -34,19 +34,23 @@ class WM8731IO extends Bundle {
 }
 
 class WM8731ControllerIO extends Bundle {
+  val clock50 = Input(Bool())
   val ready = Output(Bool())            // the controller has completed the setup over i2c
   val error = Output(Bool())            // indicate some error has happened
   val errorCode = Output(UInt(16.W))    // return error code to be displayed
   val wm8731io = new WM8731IO           // board pins
 
-  val inData = Vec(2, Output(SInt(24.W)))
-  val outData = Vec(2, Input(SInt(24.W)))
+  // Mono
+  val inData = Output(SInt(24.W))
+  val outData = Input(SInt(24.W))
+
+  val combineChannels = Input(Bool())   // true to combine channel, false to select first
 }
 
 object WM8731Controller {
   // Note: currently supports write only
   object State extends ChiselEnum {
-    val inReset, initRegs, resetDevice, outputsPowerDown, setLeftLineIn, setRightLineIn, setFormat, setSampling, setAnalogPathControl, setDigitalPathControl, setActivate, powerOn, waitI2C, ready, error = Value
+    val inReset, initRegs, resetDevice, outputsPowerDown, setLeftOutput, setRightOutput, setLeftLineIn, setRightLineIn, setFormat, setSampling, setAnalogPathControl, setDigitalPathControl, setActivate, powerOn, waitI2C, ready, error = Value
   }
 }
 
@@ -70,7 +74,7 @@ class WM8731Controller extends Module {
 
   // setup master clock
   val audioPLL = Module(new AudioPLLDriver())
-  audioPLL.io.clock := this.clock
+  audioPLL.io.clock := io.clock50.asClock
   audioPLL.io.reset := this.reset
   io.wm8731io.xck := audioPLL.io.c0
 
@@ -79,22 +83,31 @@ class WM8731Controller extends Module {
   // need to find out how to tell chisel it should compile it
   // even though instantiation is via inlined verilog in AudioPLLDriver..
   val dummyAudioPLL = Module(new AudioPLL)
-  dummyAudioPLL.io.inclk0 := this.clock
+  dummyAudioPLL.io.inclk0 := io.clock50.asClock
   dummyAudioPLL.io.areset := this.reset
 
   val i2sIn = Module(new I2S(0, 24))
   i2sIn.io.bclk := io.wm8731io.bclk
   i2sIn.io.lrc := io.wm8731io.adc.adclrck
   i2sIn.io.dat := io.wm8731io.adc.adcdat
-  io.inData(0) := i2sIn.io.data(0).asSInt
-  io.inData(1) := i2sIn.io.data(1).asSInt
+
+  when (io.combineChannels) {
+    // if combine channels, calculate mean value between left and right
+    io.inData := (i2sIn.io.data(0).asSInt + i2sIn.io.data(1).asSInt) / 2.S
+    //io.inData := i2sIn.io.data(0).asSInt
+  } .otherwise {
+    // take the first one
+    io.inData := i2sIn.io.data(0).asSInt
+  }
 
   val i2sOut = Module(new I2S(1, 24))
   i2sOut.io.bclk := io.wm8731io.bclk
   i2sOut.io.lrc := io.wm8731io.dac.daclrck
   io.wm8731io.dac.dacdat := i2sOut.io.dat
-  i2sOut.io.data(0) := io.outData(0).asUInt
-  i2sOut.io.data(1) := io.outData(1).asUInt
+  //i2sOut.io.data(0) := io.outData.asUInt
+  //i2sOut.io.data(1) := io.outData.asUInt
+  i2sOut.io.data(0) := i2sIn.io.data(0)
+  i2sOut.io.data(1) := i2sIn.io.data(1)
   
   val i2cCtrl = Module(new I2CController(WM8731_I2C_ADDR, WM8731_I2C_FREQ))
   i2cCtrl.io.i2cio <> io.wm8731io.i2c
@@ -123,10 +136,27 @@ class WM8731Controller extends Module {
       i2cCtrlInDataReg  := "b000010000".U // outputs power down
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
-      nextStateAfterI2C := setLeftLineIn
+      nextStateAfterI2C := setLeftOutput
+    }
+    is (setLeftOutput) {
+      i2cCtrlRegAddrReg := "b0000010".U // left line out
+      //i2cCtrlInDataReg  := "b001101000".U // Vol=a bit quieter
+      i2cCtrlInDataReg  := "b001111001".U // Vol=a bit quieter
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+      nextStateAfterI2C := setRightOutput
+    }
+    is (setRightOutput) {
+      i2cCtrlRegAddrReg := "b0000011".U // right line out
+      //i2cCtrlInDataReg  := "b001101000".U // Vol=a bit quieter
+      i2cCtrlInDataReg  := "b001111001".U // Vol=a bit quieter
+      i2cCtrlStartReg := true.B
+      stateReg := waitI2C
+     nextStateAfterI2C := setLeftLineIn
     }
     is (setLeftLineIn) {
       i2cCtrlRegAddrReg := "b0000000".U // left line in
+      //i2cCtrlInDataReg  := "b000010011".U // Vol=quieter, mute=0, load_both=0
       i2cCtrlInDataReg  := "b000010111".U // Vol=default, mute=0, load_both=0
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
@@ -134,14 +164,15 @@ class WM8731Controller extends Module {
     }
     is (setRightLineIn) {
       i2cCtrlRegAddrReg := "b0000001".U // right line in
+      //i2cCtrlInDataReg  := "b000010011".U // Vol=quieter, mute=0, load_both=0
       i2cCtrlInDataReg  := "b000010111".U // Vol=default, mute=0, load_both=0
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
-     nextStateAfterI2C := setFormat
+      nextStateAfterI2C := setFormat
     }
     is (setFormat) {
       i2cCtrlRegAddrReg := "b0000111".U // digital audio interface format
-      i2cCtrlInDataReg  := "b001001010".U // Data = I2S, Bit length = 24 bits, master = on
+      i2cCtrlInDataReg  := "b001001001".U // Data = LJust, Bit length = 24 bits, master = on
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
       nextStateAfterI2C := setSampling

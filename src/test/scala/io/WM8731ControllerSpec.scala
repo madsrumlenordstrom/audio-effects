@@ -14,13 +14,13 @@ class WM8731ControllerSpec extends AnyFlatSpec with ChiselScalatestTester {
         dut.clock.step(150000)
 
         // now after finishing the i2c configuration test the input
-        dut.io.outData(0).poke(0x123456.S)
-        dut.io.outData(1).poke(0x0bcdef.S)
+        dut.io.outData.poke(-0x111111.S)
+        //dut.io.outData(1).poke(0x0bcdef.S)
         dut.clock.step(1) // sync outData inner register
 
         val adcSignal = Array(
             // channel 0
-            0, // ignored
+            //0, // ignored
             0, 0, 0, 1, // 1
             0, 1, 1, 0, // 6
             0, 0, 1, 1, // 3
@@ -28,9 +28,10 @@ class WM8731ControllerSpec extends AnyFlatSpec with ChiselScalatestTester {
             1, 1, 1, 1, // f
             1, 1, 1, 1, // f
             0, 0, 0, 0, 0, // pad to 30
+            0,
 
             // channel 1
-            0, // ignored
+            //0, // ignored
             1, 0, 0, 1, // 9
             1, 1, 1, 0, // e
             1, 0, 1, 1, // b
@@ -38,10 +39,11 @@ class WM8731ControllerSpec extends AnyFlatSpec with ChiselScalatestTester {
             0, 1, 1, 1, // 7
             0, 1, 1, 1, // 7
             0, 0, 0, 0, 0, // pad to 30
+            0,
         )
 
         // do twice
-        for (j <- 0 until 2) {
+        for (j <- 0 until 3) {
             for (i <- 0 until 30 * 2 * 2) {
               // first 0 channel, then 1 channel, give 30 clocks in each channel
               if ((i / (30 * 2)) == 0) {

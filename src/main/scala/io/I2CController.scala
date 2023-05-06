@@ -45,9 +45,11 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   // connect TriState wrapper to actual pin
   io.i2cio.sda <> sda.io.bus
   val sdaDriveReg = RegInit(true.B)
+  val sdaDriveRegReal = RegInit(true.B)
   val sdaOutReg = RegInit(0.U(1.W))
-  sda.io.drive := sdaDriveReg
-  sda.io.out := sdaOutReg
+  val sdaOutRegReal = RegInit(0.U(1.W))
+  sda.io.drive := sdaDriveRegReal
+  sda.io.out := sdaOutRegReal
 
   val doneReg = Reg(Bool())
   val errorReg = Reg(Bool())
@@ -58,17 +60,34 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
 
   val outputClock = RegInit(false.B)
 
-  val clockDivider = Module(new ClockDividerByFreq(CYCLONE_II_FREQ, clockFreq))
+  // use 50Mhz clock for divider
+  val clockDivider = Module(new ClockDividerByFreq(CYCLONE_II_FREQ, clockFreq * 2))
+  var driver_negedge = ~clockDivider.io.clk & RegNext(clockDivider.io.clk, false.B)
+  var driver_posedge = clockDivider.io.clk & RegNext(~clockDivider.io.clk, false.B)
   // internal clock at clockFreq frequency
-  val sclk = clockDivider.io.clk
+  val sclk = RegInit(false.B)
+  // flip sclk on posedge of clockDriver
+  when (driver_posedge) {
+    sclk := ~sclk
+  } .elsewhen (driver_negedge) {
+    // update sda and drive only in the middle of the sclk low signal
+    sdaOutRegReal := sdaOutReg
+    sdaDriveRegReal := sdaDriveReg
+  }
   val sclk_negedge = ~sclk & RegNext(sclk, false.B)
   val sclk_posedge = sclk & RegNext(~sclk, false.B)
   val forceImmediateStateChangeReg = RegInit(false.B)
 
+  // The TriState wrapper for sclk, so we output 1'bz instead of 1'b1 on high
+  val sclkIO = Module(new TriStateBusDriver(1))
+  // connect TriState wrapper to actual pin
+  io.i2cio.sclk <> sclkIO.io.bus
+  sclkIO.io.drive := true.B
   when (outputClock) {
-    io.i2cio.sclk := sclk
+    sclkIO.io.out := sclk
   } .otherwise {
-    io.i2cio.sclk := true.B
+    // update sda line only in mid sdc change
+    sclkIO.io.out := true.B
   }
 
   // State machine register
@@ -94,6 +113,15 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
     stateReg := idle
     // skip at least one clock to margin from previous transaction
     nextState := start
+  }
+
+  val ackVal = RegInit(false.B)
+  when (sclk && !sda.io.drive) {
+    // we are ACK if we see 0 at any point of a high sclk
+    ackVal := ackVal & sda.io.in
+  } .elsewhen (!sclk && driver_negedge) {
+    // reset value to NACK in the middle of a low sclk
+    ackVal := true.B
   }
 
   // state machine works at sclk clock
@@ -143,7 +171,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
         when (sdaDriveReg) {
           sdaDriveReg := false.B
         } .otherwise {
-          when (sda.io.in === 1.U) {
+          when (ackVal === 1.U) {
             // we got nack
             errorCodeReg := ERR_I2C_NACK1.U
             nextState := error
@@ -180,7 +208,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
         when (sdaDriveReg) {
           sdaDriveReg := false.B
         } .otherwise {
-          when (sda.io.in === 1.U) {
+          when (ackVal === 1.U) {
             // we got nack
             errorCodeReg := ERR_I2C_NACK2.U
             nextState := error
@@ -214,7 +242,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
         when (sdaDriveReg) {
           sdaDriveReg := false.B
         } .otherwise {
-          when (sda.io.in === 1.U) {
+          when (ackVal === 1.U) {
             // we got nack
             errorCodeReg := ERR_I2C_NACK3.U
             nextState := error
@@ -242,7 +270,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
           // disconnect clock from internal clock so it doesn't go down
           outputClock := false.B
           // force immediate change (don't wait for next internal tick) to avoid a bump in sclk for 1 tick
-          io.i2cio.sclk := true.B
+          sclkIO.io.out := true.B
           doneReg := true.B
           nextState := idle
         }

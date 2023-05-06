@@ -9,8 +9,10 @@ object Constants {
   val CTRL_WIDTH = 8
 
   val CYCLONE_IV_FREQ = 50000000
+  //val CYCLONE_II_FREQ = 28000000
   val CYCLONE_II_FREQ = 50000000
 
   val WM8731_I2C_ADDR = 0x1a
-  val WM8731_I2C_FREQ = 100000  // max is 526kHz
+  val WM8731_I2C_FREQ = 10000  // max is 526kHz
+  //val WM8731_I2C_FREQ = 1  // max is 526kHz
 }
