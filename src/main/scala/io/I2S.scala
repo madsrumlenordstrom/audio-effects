@@ -25,6 +25,8 @@ class I2SIO(isOutput: Int, channelWidth: Int) extends Bundle {
   val sync = Output(Bool())
 }
 
+// Actually not exactly I2S but rather Left justified, which is the same
+// apart from missing the one bit of padding
 // Either I2S(0, 24) to get data from WM8731 or I2S(1, 24) to set data to WM8731
 class I2S(isOutput: Int, channelWidth: Int) extends Module {
   val io = IO(new I2SIO(isOutput, channelWidth))
@@ -47,7 +49,7 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     datReg := io.dat
   } else {
     dataReg <> io.data
-    io.dat := datReg
+    //io.dat := datReg
   }
 
   val channel = RegInit(0.U(1.W))
@@ -78,7 +80,7 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
   }
 
   if (isOutput == 0) {
-    // bclk posedge shouldn't ever happen on lrc posedge
+    // bclk posedge shouldn't ever happen on lrc posedge or negedge
     // so all registers' values should be already updated
     when (bclk_posedge) {
       when (currentTick < channelWidth.U) {
@@ -94,12 +96,25 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     when (bclk_negedge) {
       changeOutput := true.B
     }
-    when (changeOutput) {
+    // if we are beginning a new word on channel 0, it might be that lrc_posedge not yet
+    // happened, thus we'll get out of sync on the data and tick
+    // so as long as we are on the channel 1 and have finished our ticks, wait (that will be
+    // resolved by lrc_posedge handler)
+    val finishedChan1 = (channel === 1.U) && (currentTick >= channelWidth.U);
+    when (changeOutput && !finishedChan1) {
       changeOutput := false.B
       when (currentTick < channelWidth.U) {
-        datReg := tempDataReg(channel)(channelWidth.U - currentTick - 1.U) // take msb
+        //datReg := tempDataReg(channel)(channelWidth.U - currentTick - 1.U)
         currentTick := currentTick + 1.U
       }
     }
+    when (bclk_posedge) {
+      // don't change output if we missed the current tick. otherwise the previous
+      // check won't be syncing properly, as changeOutput from a far previous blkc_negedge
+      // will force the currentTick to be advanced on lrc posedge, even if blk negedge has not yet
+      // happened
+      changeOutput := false.B
+    }
+    io.dat := tempDataReg(channel)(channelWidth.U - currentTick - 1.U)
   }
 }
