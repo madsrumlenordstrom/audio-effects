@@ -92,6 +92,7 @@ set_location_assignment PIN_AC14 -to io_ledio_gled_8
 
 set_location_assignment PIN_AA23 -to io_sw0
 set_location_assignment PIN_AB26 -to io_sw1
+set_location_assignment PIN_AB25 -to io_sw2
 
 
 set_global_assignment -name VERILOG_FILE ../build/AudioPLLDriver.v

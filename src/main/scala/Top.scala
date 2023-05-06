@@ -12,6 +12,7 @@ class Top() extends Module {
     val wm8731io = new WM8731IO
     val sw0 = Input(Bool())
     val sw1 = Input(Bool())
+    val sw2 = Input(Bool())
   })
 
   withReset(!reset.asBool) {
@@ -38,6 +39,7 @@ class Top() extends Module {
     wm8731Ctrl.io.wm8731io <> io.wm8731io
     wm8731Ctrl.io.combineChannels := io.sw0
     wm8731Ctrl.io.bypass := io.sw1
+    wm8731Ctrl.io.channelSelect := io.sw2
 
     // TODO: move this connection to DSP module
     wm8731Ctrl.io.outData := wm8731Ctrl.io.inData

@@ -46,6 +46,7 @@ class WM8731ControllerIO extends Bundle {
 
   val combineChannels = Input(Bool())   // true to combine channel, false to select first
   val bypass = Input(Bool())
+  val channelSelect = Input(Bool())
 }
 
 object WM8731Controller {
@@ -94,11 +95,10 @@ class WM8731Controller extends Module {
 
   when (io.combineChannels) {
     // if combine channels, calculate mean value between left and right
-    io.inData := (i2sIn.io.data(0).asSInt + i2sIn.io.data(1).asSInt) / 2.S
+    io.inData := (i2sIn.io.data(0).asSInt / 2.S + i2sIn.io.data(1).asSInt / 2.S)
     //io.inData := i2sIn.io.data(0).asSInt
   } .otherwise {
-    // take the first one
-    io.inData := i2sIn.io.data(0).asSInt
+    io.inData := i2sIn.io.data(io.channelSelect.asUInt).asSInt
   }
 
   val i2sOut = Module(new I2S(1, 24))
