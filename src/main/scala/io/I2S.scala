@@ -36,7 +36,7 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
   val bclk_posedge = io.bclk & RegNext(~io.bclk, false.B)
   val bclk_negedge = ~io.bclk & RegNext(io.bclk, false.B)
 
-  val datReg = RegInit(false.B)
+  //val datReg = RegInit(false.B)
   // msb is ignored in protocol
   val tempDataReg = Reg(Vec(2, UInt(channelWidth.W)))
   val syncReg = RegInit(false.B)
@@ -46,15 +46,14 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
   val dataReg = Reg(Vec(2, UInt(channelWidth.W)))
   if (isOutput == 0) {
     io.data <> dataReg
-    datReg := io.dat
+    //datReg := io.dat
   } else {
     dataReg <> io.data
     //io.dat := datReg
   }
 
   val channel = RegInit(0.U(1.W))
-  // counted from msb to lsb, never overlap
-  val currentTick = RegInit(0.U(32.W))
+  val bitsLeft = RegInit(0.U(5.W))
 
   when (lrc_posedge) {
     // sync frames on lrc posedge
@@ -68,14 +67,14 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     // signal that data is ready, use register to ensure registers already updated
     syncReg := true.B
 
-    currentTick := 0.U
+    bitsLeft := channelWidth.U
     channel := 0.U // left channel
   } .otherwise {
     syncReg := false.B
   }
 
   when (lrc_negedge) {
-    currentTick := 0.U
+    bitsLeft := channelWidth.U
     channel := 1.U // right channel
   }
 
@@ -83,9 +82,9 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     // bclk posedge shouldn't ever happen on lrc posedge or negedge
     // so all registers' values should be already updated
     when (bclk_posedge) {
-      when (currentTick < channelWidth.U) {
-        tempDataReg(channel) := tempDataReg(channel)(channelWidth - 2, 0) ## datReg
-        currentTick := currentTick + 1.U
+      when (bitsLeft > 0.U) {
+        tempDataReg(channel) := tempDataReg(channel)(channelWidth - 2, 0) ## io.dat
+        bitsLeft := bitsLeft - 1.U
       }
     }
   }
@@ -100,13 +99,12 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     // happened, thus we'll get out of sync on the data and tick
     // so as long as we are on the channel 1 and have finished our ticks, wait (that will be
     // resolved by lrc_posedge handler)
-    val finishedChan1 = (channel === 1.U) && (currentTick >= channelWidth.U);
-    when (changeOutput && !finishedChan1) {
+    when (changeOutput && bitsLeft > 0.U) {
       changeOutput := false.B
-      when (currentTick < channelWidth.U) {
-        //datReg := tempDataReg(channel)(channelWidth.U - currentTick - 1.U)
-        currentTick := currentTick + 1.U
-      }
+      bitsLeft := bitsLeft - 1.U
+      //when (bitsLeft > 0.U) {
+      //  bitsLeft := bitsLeft - 1.U
+      //}
     }
     when (bclk_posedge) {
       // don't change output if we missed the current tick. otherwise the previous
@@ -115,6 +113,6 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
       // happened
       changeOutput := false.B
     }
-    io.dat := tempDataReg(channel)(channelWidth.U - currentTick - 1.U)
+    io.dat := tempDataReg(channel)(bitsLeft - 1.U)
   }
 }
