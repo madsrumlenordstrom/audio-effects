@@ -20,6 +20,9 @@ class DistortionTest extends AnyFlatSpec with ChiselScalatestTester {
       dut.clock.setTimeout(0)
       dut.io.clk.poke(true.B)
     	dut.io.ctrlSig.poke(10.asUInt)
+      dut.io.write.poke(true.B)
+      dut.clock.step(1)
+      dut.io.write.poke(false.B)
       
       val th = fork {
         for (s <- samples) {

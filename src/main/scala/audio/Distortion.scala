@@ -6,7 +6,7 @@ import chisel3._
 import chisel3.util._
 import scala.math._
 
-class Distortion() extends DSPModule {
+class Distortion(defaultCtrl: Int = 10) extends DSPModule(defaultCtrl) {
 	val lookupBits: Int = 10
 	val gainWidth: Int = 6
 	val maxGain: Double = 250.0
