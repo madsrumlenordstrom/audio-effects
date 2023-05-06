@@ -35,8 +35,6 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
   val bclk_posedge = io.bclk & RegNext(~io.bclk, false.B)
   val bclk_negedge = ~io.bclk & RegNext(io.bclk, false.B)
 
-  //val datReg = RegInit(false.B)
-  // msb is ignored in protocol
   val tempDataReg = Reg(Vec(2, UInt(channelWidth.W)))
   val syncReg = RegInit(false.B)
   io.sync := syncReg
@@ -52,52 +50,41 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
   }
 
   val channelReg = RegInit(0.U(1.W))
-  val bitsLeftReg = RegInit(0.U(5.W))
+  val bitsLeftReg = RegInit(0.U(6.W))
   val lastLrcOnBclkPosedgeReg = RegInit(false.B)
 
-  when (bclk_posedge && io.lrc) {
-    // in mid sync
-    if (isOutput == 0) {
-      dataReg(0) := tempDataReg(0)
-      dataReg(1) := tempDataReg(1)
-    } else {
-      tempDataReg(0) := dataReg(0)
-      tempDataReg(1) := dataReg(1)
-    }
-    // signal that data is ready, use register to ensure registers already updated
-    syncReg := true.B
-
-    bitsLeftReg := channelWidth.U
-    channelReg := 0.U // left channel
-  } .otherwise {
-    syncReg := false.B
-  }
+  syncReg := false.B
 
   when (bclk_posedge) {
     lastLrcOnBclkPosedgeReg := io.lrc
-  }
+    when (io.lrc) {
+      // in mid sync
+      if (isOutput == 0) {
+        dataReg(0) := tempDataReg(0)
+        dataReg(1) := tempDataReg(1)
+      } else {
+        tempDataReg(0) := dataReg(0)
+        tempDataReg(1) := dataReg(1)
+      }
+      // signal that data is ready, use register to ensure registers already updated
+      syncReg := true.B
 
-  if (isOutput == 0) {
-    // bclk posedge shouldn't ever happen on lrc posedge or negedge
-    // so all registers' values should be already updated
-    when (bclk_posedge && !io.lrc) {
-      when (bitsLeftReg > 0.U) {
-        tempDataReg(channelReg) := tempDataReg(channelReg)(channelWidth - 2, 0) ## io.dat
-        //bitsLeftReg := bitsLeftReg - 1.U
-        when (channelReg === 0.U && bitsLeftReg === 1.U) {
-          channelReg := 1.U
-          bitsLeftReg := channelWidth.U
-        } .otherwise {
-          bitsLeftReg := bitsLeftReg - 1.U
+      bitsLeftReg := channelWidth.U
+      channelReg := 0.U // left channel
+    } .otherwise {
+      // not in lrc, reading data
+      if (isOutput == 0) {
+        when (bitsLeftReg > 0.U) {
+          tempDataReg(channelReg) := tempDataReg(channelReg)(channelWidth - 2, 0) ## io.dat
+          when (channelReg === 0.U && bitsLeftReg === 1.U) {
+            channelReg := 1.U
+            bitsLeftReg := channelWidth.U
+          } .otherwise {
+            bitsLeftReg := bitsLeftReg - 1.U
+          }
         }
       }
     }
-    // // will happen after bclk posedge because of bitLeft dec
-    // when (channelReg === 0.U && bitsLeftReg === 0.U) {
-    //   // second channel follows right after
-    //   channelReg := 1.U
-    //   bitsLeftReg := channelWidth.U
-    // }
   }
  
   if (isOutput == 1) {
