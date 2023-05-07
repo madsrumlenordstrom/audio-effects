@@ -3,6 +3,7 @@ import chisel3.util.Counter
 
 import io.{WM8731Controller,WM8731IO}
 import io.{LEDController,LEDIO}
+import audio.{AudioProcessingFrame,AudioProcessingFrameIO}
 import utility.Constants._
 
 /// Switches:       LOW                     HIGH
@@ -52,7 +53,23 @@ class Top() extends Module {
     io.ledio.gled(1) := wm8731Ctrl.io.sync
 
     // TODO: move this connection to DSP module
-    wm8731Ctrl.io.outData := wm8731Ctrl.io.inData
+
+    /// Connect to DSP Module
+    val dsp = Module(new(AudioProcessingFrame))
+    // TODO: connect to proper stuff
+    dsp.io.write := false.B
+    dsp.io.dspAddr := 0.U
+    dsp.io.dspCtrl := 0.U
+    
+    dsp.io.inData := wm8731Ctrl.io.inData
+    dsp.io.clk := wm8731Ctrl.io.sync
+    
+    when (io.sw(3)) {
+      // bypass dsp
+      wm8731Ctrl.io.outData := wm8731Ctrl.io.inData
+    } .otherwise {
+      wm8731Ctrl.io.outData := dsp.io.outData
+    }
 
     // TODO: move to a module
     val rledReg = Reg(Vec(18, Bool()))

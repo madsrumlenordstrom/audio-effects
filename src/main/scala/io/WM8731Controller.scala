@@ -43,6 +43,7 @@ class WM8731ControllerIO extends Bundle {
   // Mono
   val inData = Output(SInt(24.W))
   val outData = Input(SInt(24.W))
+  val sync = Output(Bool())             // true when a frame is ready
 
   val combineChannels = Input(Bool())   // true to combine channel, false to select first
   val bypass = Input(Bool())
@@ -96,10 +97,10 @@ class WM8731Controller extends Module {
   when (io.combineChannels) {
     // if combine channels, calculate mean value between left and right
     io.inData := (i2sIn.io.data(0).asSInt / 2.S + i2sIn.io.data(1).asSInt / 2.S)
-    //io.inData := i2sIn.io.data(0).asSInt
   } .otherwise {
     io.inData := i2sIn.io.data(io.channelSelect.asUInt).asSInt
   }
+  io.sync := i2sIn.io.sync
 
   val i2sOut = Module(new I2S(1, 24))
   i2sOut.io.bclk := io.wm8731io.bclk
