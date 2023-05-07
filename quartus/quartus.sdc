@@ -40,6 +40,7 @@ set_time_format -unit ns -decimal_places 3
 
 create_clock -name {io_clock50} -period 20.000 -waveform { 0.000 10.000 } [get_ports {io_clock50}]
 create_clock -name {clock} -period 20.000 -waveform { 0.000 10.000 } [get_ports {clock}]
+create_clock -name {bclk} -period 83.333 [get_ports {io_wm8731io_bclk}]
 
 
 #**************************************************************
@@ -48,6 +49,8 @@ create_clock -name {clock} -period 20.000 -waveform { 0.000 10.000 } [get_ports 
 
 create_generated_clock -name {wm8731Ctrl|audioPLL|AudioPLL_1|altpll_component|pll|clk[0]} -source [get_pins {wm8731Ctrl|audioPLL|AudioPLL_1|altpll_component|pll|inclk[0]}] -duty_cycle 50.000 -multiply_by 6 -divide_by 25 -master_clock {io_clock50} [get_pins {wm8731Ctrl|audioPLL|AudioPLL_1|altpll_component|pll|clk[0]}] 
 
+
+derive_pll_clocks
 
 #**************************************************************
 # Set Clock Latency
@@ -59,18 +62,31 @@ create_generated_clock -name {wm8731Ctrl|audioPLL|AudioPLL_1|altpll_component|pl
 # Set Clock Uncertainty
 #**************************************************************
 
+derive_clock_uncertainty
+
+set_clock_groups \
+    -asynchronous \
+    -group {{wm8731Ctrl|audioPLL|AudioPLL_1|altpll_component|pll|clk[0]} {io_clock50} {clock}} \
+    -group {bclk}
 
 
 #**************************************************************
 # Set Input Delay
 #**************************************************************
 
-
+set_input_delay -clock bclk -max 4 [get_ports {io_wm8731io_adc_adclrck}]
+set_input_delay -clock bclk -min -1 [get_ports {io_wm8731io_adc_adclrck}]
+set_input_delay -clock bclk -max 4 [get_ports {io_wm8731io_adc_adcdat}]
+set_input_delay -clock bclk -min -1 [get_ports {io_wm8731io_adc_adcdat}]
+set_input_delay -clock bclk -max 4 [get_ports {io_wm8731io_dac_daclrck}]
+set_input_delay -clock bclk -min -1 [get_ports {io_wm8731io_dac_daclrck}]
 
 #**************************************************************
 # Set Output Delay
 #**************************************************************
 
+set_output_delay -clock bclk -max 6 [get_ports {io_wm8731io_dac_dacdat}]
+set_output_delay -clock bclk -min -3 [get_ports {io_wm8731io_dac_dacdat}]
 
 
 #**************************************************************
