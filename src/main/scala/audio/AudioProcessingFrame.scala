@@ -26,7 +26,7 @@ class AudioProcessingFrame extends Module {
   val effects = (0 until DSPModules.effects.length).map(i => DSPModules.effects(i))
 
   // Print configuration
-  println("Audio chain is configured as:")
+  println("\nAudio chain is configured as:")
   effects.foreach(effect => print("-> " + effect.desiredName + " "))
   println()
 

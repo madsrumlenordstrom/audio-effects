@@ -1,9 +1,9 @@
 import chisel3._
-import chisel3.util.Counter
+import chisel3.util.{Counter, log2Up}
 
 import io.{WM8731Controller,WM8731IO}
 import io.{LEDController,LEDIO}
-import audio.{AudioProcessingFrame,AudioProcessingFrameIO}
+import audio.{AudioProcessingFrame,AudioProcessingFrameIO, DSPModules}
 import utility.Constants._
 
 /// Switches:       LOW                     HIGH
@@ -22,6 +22,7 @@ class Top() extends Module {
     val ledio = new LEDIO
     val wm8731io = new WM8731IO
     val sw = Vec(18, Input(Bool())) // switches
+    val dspWrite = Input(Bool())
   })
 
   withReset(!reset.asBool) {
@@ -56,10 +57,26 @@ class Top() extends Module {
 
     /// Connect to DSP Module
     val dsp = Module(new(AudioProcessingFrame))
-    // TODO: connect to proper stuff
-    dsp.io.write := false.B
-    dsp.io.dspAddr := 0.U
-    dsp.io.dspCtrl := 0.U
+    val addrWidth = log2Up(DSPModules.effects.length)
+    
+    // Connect addressing switches
+    println("\n\nAddressing switches will be:")
+    val dspAddr = Wire(Vec(addrWidth, UInt(1.W)))
+    for (i <- io.sw.length - 1 until io.sw.length - addrWidth - 1 by -1) {
+      print("SW" + i + " ")
+      dspAddr(io.sw.length - i - 1) := io.sw(i).asUInt
+    }
+    // Connect control switches
+    println("\n\nControl switches will be:")
+    val dspCtrl = Wire(Vec(CTRL_WIDTH, UInt(1.W)))
+    for (i <- io.sw.length - addrWidth - 1 until io.sw.length - addrWidth - CTRL_WIDTH - 1 by -1) {
+      print("SW" + i + " ")
+      dspCtrl(io.sw.length - i - 1 - addrWidth) := io.sw(i).asUInt
+    }
+    println("\n")
+    dsp.io.write := io.dspWrite
+    dsp.io.dspAddr := dspAddr.asUInt
+    dsp.io.dspCtrl := dspCtrl.asUInt
     
     dsp.io.inData := wm8731Ctrl.io.inData
     dsp.io.clk := wm8731Ctrl.io.sync
