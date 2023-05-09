@@ -25,96 +25,103 @@ class I2SIO(isOutput: Int, channelWidth: Int) extends Bundle {
   val sync = Output(Bool())
 }
 
-// Actually not exactly I2S but rather Left justified, which is the same
-// apart from missing the one bit of padding
+// Actually not exactly I2S but rather DSP mode
 // Either I2S(0, 24) to get data from WM8731 or I2S(1, 24) to set data to WM8731
 class I2S(isOutput: Int, channelWidth: Int) extends Module {
   val io = IO(new I2SIO(isOutput, channelWidth))
 
-  val lrc_posedge = io.lrc & RegNext(~io.lrc, false.B)
-  val lrc_negedge = ~io.lrc & RegNext(io.lrc, false.B)
-  val bclk_posedge = io.bclk & RegNext(~io.bclk, false.B)
-  val bclk_negedge = ~io.bclk & RegNext(io.bclk, false.B)
+  // double sample for cross clock boundary
+  val bclkReg = RegNext(io.bclk)
+  val lrcReg = RegNext(io.lrc)
 
-  val datReg = RegInit(false.B)
-  // msb is ignored in protocol
+  val lrc_posedge = lrcReg & RegNext(~lrcReg, false.B)
+  val lrc_negedge = ~lrcReg & RegNext(lrcReg, false.B)
+  val bclk_posedge = bclkReg & RegNext(~bclkReg, false.B)
+  val bclk_negedge = ~bclkReg & RegNext(bclkReg, false.B)
+
   val tempDataReg = Reg(Vec(2, UInt(channelWidth.W)))
   val syncReg = RegInit(false.B)
   io.sync := syncReg
 
+
   // synced with tempDataReg on lrc posedge to ensure consistent values
   val dataReg = Reg(Vec(2, UInt(channelWidth.W)))
+  val datReg = RegInit(false.B)
   if (isOutput == 0) {
     io.data <> dataReg
-    datReg := io.dat
+    // double sample for cross clock boundary
+    datReg := RegNext(io.dat)
   } else {
     dataReg <> io.data
     //io.dat := datReg
   }
 
-  val channel = RegInit(0.U(1.W))
-  // counted from msb to lsb, never overlap
-  val currentTick = RegInit(0.U(32.W))
+  val channelReg = RegInit(0.U(1.W))
+  val bitsLeftReg = RegInit(0.U(6.W))
+  val lastLrcOnBclkPosedgeReg = RegInit(false.B)
 
-  when (lrc_posedge) {
-    // sync frames on lrc posedge
-    if (isOutput == 0) {
+  syncReg := false.B
+
+  when (bclk_posedge) {
+    when (lrcReg) {
+      // in mid sync
       dataReg(0) := tempDataReg(0)
       dataReg(1) := tempDataReg(1)
-    } else {
-      tempDataReg(0) := dataReg(0)
-      tempDataReg(1) := dataReg(1)
-    }
-    // signal that data is ready, use register to ensure registers already updated
-    syncReg := true.B
+      // signal that data is ready, use register to ensure registers already updated
+      syncReg := true.B
 
-    currentTick := 0.U
-    channel := 0.U // left channel
-  } .otherwise {
-    syncReg := false.B
-  }
-
-  when (lrc_negedge) {
-    currentTick := 0.U
-    channel := 1.U // right channel
-  }
-
-  if (isOutput == 0) {
-    // bclk posedge shouldn't ever happen on lrc posedge or negedge
-    // so all registers' values should be already updated
-    when (bclk_posedge) {
-      when (currentTick < channelWidth.U) {
-        tempDataReg(channel) := tempDataReg(channel)(channelWidth - 2, 0) ## datReg
-        currentTick := currentTick + 1.U
+      bitsLeftReg := channelWidth.U
+      channelReg := 0.U // left channel
+    } .otherwise {
+      // not in lrc, reading data
+      if (isOutput == 0) {
+        when (bitsLeftReg > 0.U) {
+          tempDataReg(channelReg) := tempDataReg(channelReg)(channelWidth - 2, 0) ## datReg
+          when (channelReg === 0.U && bitsLeftReg === 1.U) {
+            channelReg := 1.U
+            bitsLeftReg := channelWidth.U
+          } .otherwise {
+            bitsLeftReg := bitsLeftReg - 1.U
+          }
+        }
       }
     }
   }
  
   if (isOutput == 1) {
-    val changeOutput = RegInit(false.B)
-    // update output dat one clock after bclk negedge so all regs are synced
-    when (bclk_negedge) {
-      changeOutput := true.B
+    val dontChange = RegInit(false.B)
+    // lrc posedge is 2 clocks delayed, so we are here about in the middle of it
+    // so we are somewhere around posedge of bclk with high lrc
+    when (lrc_posedge) {
+      tempDataReg(0) := dataReg(0)
+      tempDataReg(1) := dataReg(1)
+      bitsLeftReg := channelWidth.U
+      channelReg := 0.U // left channel
+      dontChange := true.B
     }
-    // if we are beginning a new word on channel 0, it might be that lrc_posedge not yet
-    // happened, thus we'll get out of sync on the data and tick
-    // so as long as we are on the channel 1 and have finished our ticks, wait (that will be
-    // resolved by lrc_posedge handler)
-    val finishedChan1 = (channel === 1.U) && (currentTick >= channelWidth.U);
-    when (changeOutput && !finishedChan1) {
-      changeOutput := false.B
-      when (currentTick < channelWidth.U) {
-        //datReg := tempDataReg(channel)(channelWidth.U - currentTick - 1.U)
-        currentTick := currentTick + 1.U
+    // we change on blck posedge because it is 2 clocks delayed, thus is somewhere
+    // around negedge actually..
+
+    // we next time we bclk_posedge must be after lrc_posedge, and we are actually
+    // beause of 2 ticks delay at negedge, so time to change anyway..
+    when (bclk_posedge && bitsLeftReg > 0.U) {
+      when (dontChange) {
+        dontChange := false.B
+      } .otherwise {
+        // if we finished with the first channel, switch to the second
+        when (channelReg === 0.U && bitsLeftReg === 1.U) {
+          channelReg := 1.U
+          bitsLeftReg := channelWidth.U
+        } .otherwise {
+          bitsLeftReg := bitsLeftReg - 1.U
+        }
       }
     }
-    when (bclk_posedge) {
-      // don't change output if we missed the current tick. otherwise the previous
-      // check won't be syncing properly, as changeOutput from a far previous blkc_negedge
-      // will force the currentTick to be advanced on lrc posedge, even if blk negedge has not yet
-      // happened
-      changeOutput := false.B
+
+    when (bitsLeftReg > 0.U) {
+      io.dat := tempDataReg(channelReg)(bitsLeftReg - 1.U)
+    } .otherwise {
+      io.dat := false.B
     }
-    io.dat := tempDataReg(channel)(channelWidth.U - currentTick - 1.U)
   }
 }

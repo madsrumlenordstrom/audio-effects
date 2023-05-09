@@ -3,14 +3,25 @@ import chisel3.util.Counter
 
 import io.{WM8731Controller,WM8731IO}
 import io.{LEDController,LEDIO}
+import audio.{AudioProcessingFrame,AudioProcessingFrameIO}
 import utility.Constants._
+
+/// Switches:       LOW                     HIGH
+/// SW0          combine channels       select one channel
+/// SW1              -                  connect dacdat to adcdat, bypass decoder
+/// SW2          select left chan       select right chan
+/// SW3              -                  bypass DSP module
+/// SW4
+/// SW5
+/// SW6
+/// SW7             INVALID                 INVALID         (not connected)
 
 class Top() extends Module {
   val io = IO(new Bundle {
     val clock50 = Input(Bool())
     val ledio = new LEDIO
     val wm8731io = new WM8731IO
-    val sw0 = Input(Bool())
+    val sw = Vec(18, Input(Bool())) // switches
   })
 
   withReset(!reset.asBool) {
@@ -19,9 +30,9 @@ class Top() extends Module {
     ledCtrl.io.error := false.B
     ledCtrl.io.errorCode := 0.U
 
+    // TODO: remove
     // gled8 - on
     io.ledio.gled(8) := true.B
-
     //io.ledio.gled(1) := io.wm8731io.i2c.sclk
     //io.ledio.gled(2) := ~io.wm8731io.i2c.sclk
     //io.ledio.gled(3) := io.wm8731io.xck
@@ -35,10 +46,30 @@ class Top() extends Module {
     wm8731Ctrl.io.clock50 := io.clock50
     // connect pins from top module to controller module
     wm8731Ctrl.io.wm8731io <> io.wm8731io
-    wm8731Ctrl.io.combineChannels := io.sw0
+    wm8731Ctrl.io.combineChannels := io.sw(0)
+    wm8731Ctrl.io.bypass := io.sw(1)
+    wm8731Ctrl.io.channelSelect := io.sw(2)
+
+    io.ledio.gled(1) := wm8731Ctrl.io.sync
 
     // TODO: move this connection to DSP module
-    wm8731Ctrl.io.outData := wm8731Ctrl.io.inData
+
+    /// Connect to DSP Module
+    val dsp = Module(new(AudioProcessingFrame))
+    // TODO: connect to proper stuff
+    dsp.io.write := false.B
+    dsp.io.dspAddr := 0.U
+    dsp.io.dspCtrl := 0.U
+    
+    dsp.io.inData := wm8731Ctrl.io.inData
+    dsp.io.clk := wm8731Ctrl.io.sync
+    
+    when (io.sw(3)) {
+      // bypass dsp
+      wm8731Ctrl.io.outData := wm8731Ctrl.io.inData
+    } .otherwise {
+      wm8731Ctrl.io.outData := dsp.io.outData
+    }
 
     // TODO: move to a module
     val rledReg = Reg(Vec(18, Bool()))

@@ -20,33 +20,29 @@ class WM8731ControllerSpec extends AnyFlatSpec with ChiselScalatestTester {
 
         val adcSignal = Array(
             // channel 0
-            //0, // ignored
+            0, // ignored
             0, 0, 0, 1, // 1
             0, 1, 1, 0, // 6
             0, 0, 1, 1, // 3
             0, 0, 1, 1, // 3
             1, 1, 1, 1, // f
             1, 1, 1, 1, // f
-            0, 0, 0, 0, 0, // pad to 30
-            0,
-
             // channel 1
-            //0, // ignored
             1, 0, 0, 1, // 9
             1, 1, 1, 0, // e
             1, 0, 1, 1, // b
             1, 0, 1, 1, // b
             0, 1, 1, 1, // 7
             0, 1, 1, 1, // 7
-            0, 0, 0, 0, 0, // pad to 30
-            0,
+            0, 0, 0, 0, 0, // pad to 60
+            0, 0, 0, 0, 0, 0,
         )
 
         // do twice
         for (j <- 0 until 3) {
             for (i <- 0 until 30 * 2 * 2) {
-              // first 0 channel, then 1 channel, give 30 clocks in each channel
-              if ((i / (30 * 2)) == 0) {
+              // sync
+              if (i  < 2) {
                 dut.io.wm8731io.dac.daclrck.poke(true.B)
                 dut.io.wm8731io.adc.adclrck.poke(true.B)
               } else {
