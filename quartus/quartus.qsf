@@ -53,6 +53,7 @@ set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 #set_location_assignment PIN_E16 -to clock
 set_location_assignment PIN_R3 -to clock
 set_location_assignment PIN_T29 -to reset
+set_location_assignment PIN_U29 -to io_dspWrite
 set_location_assignment PIN_AD15 -to io_clock50
 set_location_assignment PIN_J18 -to io_wm8731io_i2c_sclk
 set_location_assignment PIN_H18 -to io_wm8731io_i2c_sda
