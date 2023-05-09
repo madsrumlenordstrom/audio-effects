@@ -10,7 +10,15 @@ import firrtl.Utils
 class FIRFilterSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   "FIRFilter" should "play" in {
-    test(new FIRFilter(Seq(1.S, 1.S, 1.S, 1.S, 1.S))).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+    def movingAverageSeq(n: Int): Seq[SInt] = {
+      var tmp = Seq[SInt]()
+      for (i <- 0 until n) {
+        tmp = tmp :+ 1.S
+      }
+      println(tmp)
+      return tmp.toSeq
+    }
+    test(new FIRFilter(movingAverageSeq(10))).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
       // Function to write to the DSP module
       def sendCtrlSig(ctrl: UInt):Unit={
         dut.io.ctrlSig.poke(ctrl)
@@ -20,7 +28,7 @@ class FIRFilterSpec extends AnyFlatSpec with ChiselScalatestTester {
         dut.io.write.poke(false.B)
       }
       
-      val samples = getFileSamples("sample.wav")
+      val samples = getFileSamples("sample_distortion_out.wav")
       val outSamples = new Array[Short](samples.length)
 
       var finished = false
