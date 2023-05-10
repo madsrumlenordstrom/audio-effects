@@ -60,18 +60,20 @@ class Top() extends Module {
     val addrWidth = log2Up(DSPModules.effects.length)
 
     // Connect addressing switches
-    println("\n\nAddressing switches will be:")
+    println("\n\nAddressing switches configured as:")
     val dspAddr = Wire(Vec(addrWidth, UInt(1.W)))
-    for (i <- io.sw.length - 1 until io.sw.length - addrWidth - 1 by -1) {
-      print("SW" + i + " ")
-      dspAddr(io.sw.length - i - 1) := io.sw(i).asUInt
+    for (i <- addrWidth - 1 to 0 by -1) {
+      val swhIdx = io.sw.length - addrWidth + i
+      print("SW" + swhIdx + " ")
+      dspAddr(i) := io.sw(swhIdx).asUInt
     }
     // Connect control switches
-    println("\n\nControl switches will be:")
+    println("\n\nControl switches configured as:")
     val dspCtrl = Wire(Vec(CTRL_WIDTH, UInt(1.W)))
-    for (i <- io.sw.length - addrWidth - 1 until io.sw.length - addrWidth - CTRL_WIDTH - 1 by -1) {
-      print("SW" + i + " ")
-      dspCtrl(io.sw.length - i - 1 - addrWidth) := io.sw(i).asUInt
+    for (i <- CTRL_WIDTH - 1 to 0 by -1) {
+      val swhIdx = io.sw.length - addrWidth - CTRL_WIDTH + i
+      print("SW" + swhIdx + " ")
+      dspCtrl(i) := io.sw(swhIdx).asUInt
     }
     println("\n")
     dsp.io.write := ~io.dspWrite
