@@ -81,7 +81,7 @@ class OctaveDown() extends DSPModule {
     counter.inc()
   }
   
-  when(sampleCount === maxIndex.U) {		// if counts more than buffer size? when buffer is full
+  when(sampleCount === maxIndex.U) {
     when((counter.value === regLowPeakIndex)
      & (regRising === filterBits.U)
      & !regToggled) {
