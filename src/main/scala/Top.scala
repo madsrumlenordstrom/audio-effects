@@ -25,7 +25,7 @@ class Top() extends Module {
     val sw = Vec(18, Input(Bool())) // switches
     val dspWrite = Input(Bool())
     val dspAddrSevSeg = Vec(2, Vec(7, Output(Bool()))) // seven segment addr display
-    //val dspCtrlSevSeg = Vec(4, Vec(7, Output(Bool()))) // seven segment ctrl display
+    val dspCtrlSevSeg = Vec(2, Vec(7, Output(Bool()))) // seven segment ctrl display
   })
 
   withReset(!reset.asBool) {
@@ -91,9 +91,17 @@ class Top() extends Module {
     dspAddrSevSeg.io.sw := dspAddr.asUInt
     for (i <- 0 until io.dspAddrSevSeg(0).length) {
       io.dspAddrSevSeg(0)(i) := dspAddrSevSeg.io.seg(i)
-      io.dspAddrSevSeg(1)(i) := dspAddrSevSeg.io.seg(i)
+      io.dspAddrSevSeg(1)(i) := 0.U // Maybe add later
     }
-    
+    val dspCtrlSevSeg0 = Module(new SevenSegDecoder)
+    val dspCtrlSevSeg1 = Module(new SevenSegDecoder)
+    dspCtrlSevSeg0.io.sw := dspCtrl.asUInt(3,0)
+    dspCtrlSevSeg1.io.sw := dspCtrl.asUInt(7,4)
+    for (i <- 0 until io.dspCtrlSevSeg(0).length) {
+      io.dspCtrlSevSeg(0)(i) := dspCtrlSevSeg0.io.seg(i)
+      io.dspCtrlSevSeg(1)(i) := dspCtrlSevSeg1.io.seg(i)
+    }
+
     when (io.sw(3)) {
       // bypass dsp
       wm8731Ctrl.io.outData := wm8731Ctrl.io.inData
