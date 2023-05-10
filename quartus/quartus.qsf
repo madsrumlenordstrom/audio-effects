@@ -111,20 +111,20 @@ set_location_assignment PIN_L4 -to io_sw_15
 set_location_assignment PIN_L7 -to io_sw_16
 set_location_assignment PIN_L8 -to io_sw_17
 
-set_location_assigment PIN_H6 -to io_dspAddrSevSeg_0_0
-set_location_assigment PIN_H4 -to io_dspAddrSevSeg_0_1
-set_location_assigment PIN_H7 -to io_dspAddrSevSeg_0_2
-set_location_assigment PIN_H8 -to io_dspAddrSevSeg_0_3
-set_location_assigment PIN_G4 -to io_dspAddrSevSeg_0_4
-set_location_assigment PIN_F4 -to io_dspAddrSevSeg_0_5
-set_location_assigment PIN_E4 -to io_dspAddrSevSeg_0_6
-set_location_assigment PIN_K3 -to io_dspAddrSevSeg_1_0
-set_location_assigment PIN_J1 -to io_dspAddrSevSeg_1_1
-set_location_assigment PIN_J2 -to io_dspAddrSevSeg_1_2
-set_location_assigment PIN_H1 -to io_dspAddrSevSeg_1_3
-set_location_assigment PIN_H2 -to io_dspAddrSevSeg_1_4
-set_location_assigment PIN_H3 -to io_dspAddrSevSeg_1_5
-set_location_assigment PIN_G1 -to io_dspAddrSevSeg_1_6
+set_location_assignment PIN_H6 -to io_dspAddrSevSeg_0_0
+set_location_assignment PIN_H4 -to io_dspAddrSevSeg_0_1
+set_location_assignment PIN_H7 -to io_dspAddrSevSeg_0_2
+set_location_assignment PIN_H8 -to io_dspAddrSevSeg_0_3
+set_location_assignment PIN_G4 -to io_dspAddrSevSeg_0_4
+set_location_assignment PIN_F4 -to io_dspAddrSevSeg_0_5
+set_location_assignment PIN_E4 -to io_dspAddrSevSeg_0_6
+set_location_assignment PIN_K3 -to io_dspAddrSevSeg_1_0
+set_location_assignment PIN_J1 -to io_dspAddrSevSeg_1_1
+set_location_assignment PIN_J2 -to io_dspAddrSevSeg_1_2
+set_location_assignment PIN_H1 -to io_dspAddrSevSeg_1_3
+set_location_assignment PIN_H2 -to io_dspAddrSevSeg_1_4
+set_location_assignment PIN_H3 -to io_dspAddrSevSeg_1_5
+set_location_assignment PIN_G1 -to io_dspAddrSevSeg_1_6
 
 set_global_assignment -name VERILOG_FILE ../build/AudioPLLDriver.v
 set_global_assignment -name VERILOG_FILE ../build/TriStateBusDriver.v
