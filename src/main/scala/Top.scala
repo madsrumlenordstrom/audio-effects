@@ -5,6 +5,7 @@ import io.{WM8731Controller,WM8731IO}
 import io.{LEDController,LEDIO}
 import audio.{AudioProcessingFrame,AudioProcessingFrameIO, DSPModules}
 import utility.Constants._
+import utility.SevenSegDecoder
 
 /// Switches:       LOW                     HIGH
 /// SW0          combine channels       select one channel
@@ -23,6 +24,8 @@ class Top() extends Module {
     val wm8731io = new WM8731IO
     val sw = Vec(18, Input(Bool())) // switches
     val dspWrite = Input(Bool())
+    val dspAddrSevSeg = Vec(2, Vec(7, Output(Bool()))) // seven segment addr display
+    //val dspCtrlSevSeg = Vec(4, Vec(7, Output(Bool()))) // seven segment ctrl display
   })
 
   withReset(!reset.asBool) {
@@ -82,6 +85,14 @@ class Top() extends Module {
     
     dsp.io.inData := wm8731Ctrl.io.inData
     dsp.io.clk := wm8731Ctrl.io.sync
+
+    // Seven segment display
+    val dspAddrSevSeg = Module(new SevenSegDecoder)
+    dspAddrSevSeg.io.sw := dspAddr.asUInt
+    for (i <- 0 until io.dspAddrSevSeg(0).length) {
+      io.dspAddrSevSeg(0)(i) := dspAddrSevSeg.io.seg(i)
+      io.dspAddrSevSeg(1)(i) := dspAddrSevSeg.io.seg(i)
+    }
     
     when (io.sw(3)) {
       // bypass dsp
