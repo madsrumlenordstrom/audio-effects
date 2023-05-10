@@ -58,7 +58,7 @@ class Top() extends Module {
     /// Connect to DSP Module
     val dsp = Module(new(AudioProcessingFrame))
     val addrWidth = log2Up(DSPModules.effects.length)
-    
+
     // Connect addressing switches
     println("\n\nAddressing switches will be:")
     val dspAddr = Wire(Vec(addrWidth, UInt(1.W)))
@@ -74,7 +74,7 @@ class Top() extends Module {
       dspCtrl(io.sw.length - i - 1 - addrWidth) := io.sw(i).asUInt
     }
     println("\n")
-    dsp.io.write := io.dspWrite
+    dsp.io.write := ~io.dspWrite
     dsp.io.dspAddr := dspAddr.asUInt
     dsp.io.dspCtrl := dspCtrl.asUInt
     
