@@ -1,7 +1,7 @@
 all: build flash
 
 flash:
-	quartus_pgm -c 'USB-Blaster [1-3]' output_files/quartus.cdf
+	quartus_pgm -c USB-Blaster -m JTAG -o "P;output_files/quartus.sof"
 
 build:
 	quartus_map quartus

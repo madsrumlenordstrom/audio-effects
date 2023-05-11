@@ -367,6 +367,7 @@ diagrammer/
 .bloop/
 .ammonite/
 metals.sbt
+.scalafmt.conf
 
 quartus/db
 quartus/incremental_db
