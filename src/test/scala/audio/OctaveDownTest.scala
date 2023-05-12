@@ -40,7 +40,7 @@ class OctaveDownTest extends AnyFlatSpec with ChiselScalatestTester {
       // for (j <- 0 to 40) {
         // val valid = dut.io.out.valid.peek.litToBoolean
         // if (valid) {
-        val s = dut.io.audioOut.peek.litValue.toShort
+        val s = dut.io.audioOut.peek().litValue.toShort
         outSamples(idx) = s
         idx += 1
         // }
