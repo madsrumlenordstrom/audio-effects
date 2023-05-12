@@ -7,6 +7,6 @@ object DSPModules {
   val effects = List(
     Module(new ClampDistortion(16, 16384)),
     Module(new MovingAverage(16)),
-    Module(new VolumeControl(8))
+    Module(new VolumeControl(32))
   )
 }

@@ -1,8 +1,8 @@
-// See README.md for license details.
-
 ThisBuild / scalaVersion     := "2.13.8"
 ThisBuild / version          := "0.1.0"
 ThisBuild / organization     := "Technical University of Denmark"
+
+Test / parallelExecution := false
 
 val chiselVersion = "3.5.6"
 

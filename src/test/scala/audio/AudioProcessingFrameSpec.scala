@@ -56,7 +56,7 @@ class AudioProcessingFrameSpec extends AnyFlatSpec with ChiselScalatestTester {
       }
       th.join()
 
-      saveArray(outSamples, "sample_out.wav")
+      saveArray(outSamples, "sample-" + dut.desiredName.toLowerCase + ".wav")
     }
   }
 }
