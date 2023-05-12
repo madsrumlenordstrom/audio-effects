@@ -101,7 +101,7 @@ class WM8731Controller extends Module {
 
   when(io.combineChannels) {
     // if combine channels, calculate mean value between left and right
-    io.inData := (i2sIn.io.data(0).asSInt / 2.S + i2sIn.io.data(1).asSInt / 2.S)
+    io.inData := (i2sIn.io.data(0).asSInt + i2sIn.io.data(1).asSInt >> 1).asSInt
   }.otherwise {
     io.inData := i2sIn.io.data(io.channelSelect.asUInt).asSInt
   }
