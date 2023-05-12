@@ -127,6 +127,22 @@ set_location_assignment PIN_H2 -to io_dspAddrSevSeg_1_4
 set_location_assignment PIN_H3 -to io_dspAddrSevSeg_1_5
 set_location_assignment PIN_G1 -to io_dspAddrSevSeg_1_6
 
+# Seven segment stored ctrl
+set_location_assignment PIN_P1 -to  io_dspStrdSevSeg_0_0
+set_location_assignment PIN_P2 -to  io_dspStrdSevSeg_0_1
+set_location_assignment PIN_P3 -to  io_dspStrdSevSeg_0_2
+set_location_assignment PIN_N2 -to io_dspStrdSevSeg_0_3
+set_location_assignment PIN_N3 -to io_dspStrdSevSeg_0_4
+set_location_assignment PIN_M1 -to io_dspStrdSevSeg_0_5
+set_location_assignment PIN_M2 -to io_dspStrdSevSeg_0_6
+set_location_assignment PIN_M3 -to io_dspStrdSevSeg_1_0
+set_location_assignment PIN_L1 -to io_dspStrdSevSeg_1_1
+set_location_assignment PIN_L2 -to io_dspStrdSevSeg_1_2
+set_location_assignment PIN_L3 -to io_dspStrdSevSeg_1_3
+set_location_assignment PIN_K1 -to io_dspStrdSevSeg_1_4
+set_location_assignment PIN_K4 -to io_dspStrdSevSeg_1_5
+set_location_assignment PIN_K5 -to io_dspStrdSevSeg_1_6
+
 # Seven segment ctrl
 set_location_assignment PIN_AE8 -to io_dspCtrlSevSeg_0_0
 set_location_assignment PIN_AF9 -to io_dspCtrlSevSeg_0_1

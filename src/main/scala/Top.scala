@@ -8,9 +8,9 @@ import utility.Constants._
 import utility.SevenSegDecoder
 
 /// Switches:       LOW                     HIGH
-/// SW0          combine channels       select one channel
-/// SW1              -                  connect dacdat to adcdat, bypass decoder
-/// SW2          select left chan       select right chan
+/// SW0          select one channel     combine channels
+/// SW1          select left chan       select right chan
+/// SW2              -                  connect dacdat to adcdat, bypass decoder
 /// SW3              -                  bypass DSP module
 /// SW4
 /// SW5
@@ -28,6 +28,8 @@ class Top() extends Module {
       Vec(2, Vec(7, Output(Bool()))) // seven segment addr display
     val dspCtrlSevSeg =
       Vec(2, Vec(7, Output(Bool()))) // seven segment ctrl display
+    val dspStrdSevSeg =
+      Vec(2, Vec(7, Output(Bool()))) // seven segment stored ctrl display
   })
 
   withReset(!reset.asBool) {
@@ -53,8 +55,8 @@ class Top() extends Module {
     // connect pins from top module to controller module
     wm8731Ctrl.io.wm8731io <> io.wm8731io
     wm8731Ctrl.io.combineChannels := io.sw(0)
-    wm8731Ctrl.io.bypass := io.sw(1)
-    wm8731Ctrl.io.channelSelect := io.sw(2)
+    wm8731Ctrl.io.channelSelect := io.sw(1)
+    wm8731Ctrl.io.bypass := io.sw(2)
 
     io.ledio.gled(1) := wm8731Ctrl.io.sync
 
@@ -93,7 +95,7 @@ class Top() extends Module {
     dspAddrSevSeg.io.sw := dspAddr.asUInt
     for (i <- 0 until io.dspAddrSevSeg(0).length) {
       io.dspAddrSevSeg(0)(i) := dspAddrSevSeg.io.seg(i)
-      io.dspAddrSevSeg(1)(i) := 0.U // Maybe add later
+      io.dspAddrSevSeg(1)(i) := "b1111111".U // Maybe add later
     }
     val dspCtrlSevSeg0 = Module(new SevenSegDecoder)
     val dspCtrlSevSeg1 = Module(new SevenSegDecoder)
@@ -102,6 +104,15 @@ class Top() extends Module {
     for (i <- 0 until io.dspCtrlSevSeg(0).length) {
       io.dspCtrlSevSeg(0)(i) := dspCtrlSevSeg0.io.seg(i)
       io.dspCtrlSevSeg(1)(i) := dspCtrlSevSeg1.io.seg(i)
+    }
+
+    val dspStrdSevSeg0 = Module(new SevenSegDecoder)
+    val dspStrdSevSeg1 = Module(new SevenSegDecoder)
+    dspStrdSevSeg0.io.sw := dsp.io.strdCtrl.asUInt(3, 0)
+    dspStrdSevSeg1.io.sw := dsp.io.strdCtrl.asUInt(7, 4)
+    for (i <- 0 until io.dspStrdSevSeg(0).length) {
+      io.dspStrdSevSeg(0)(i) := dspStrdSevSeg0.io.seg(i)
+      io.dspStrdSevSeg(1)(i) := dspStrdSevSeg1.io.seg(i)
     }
 
     when(io.sw(3)) {
