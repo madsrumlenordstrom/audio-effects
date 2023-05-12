@@ -13,13 +13,13 @@ class LEDIO extends Bundle {
 class LEDController extends Module {
   val io = IO(new Bundle {
     val ledio = new LEDIO
-  
+
     // if error is true then red leds indicate 16 bit error code
     // and leftmost red led blinks
     val error = Input(Bool())
     val errorCode = Input(UInt(16.W))
   })
-    
+
   // turn off all leds
   for (i <- 0 until 9) {
     io.ledio.gled(i) := WireDefault(false.B)
@@ -31,11 +31,11 @@ class LEDController extends Module {
   // Blink LED every second using Chisel built-in util.Counter
   val blinking_led = RegInit(false.B)
   val (_, counterWrap) = Counter(true.B, CYCLONE_II_FREQ / 2)
-  when (counterWrap) {
+  when(counterWrap) {
     blinking_led := ~blinking_led
   }
 
-  when (io.error) {
+  when(io.error) {
     io.ledio.rled(17) := blinking_led
 
     // display error code in red leds

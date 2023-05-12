@@ -3,7 +3,7 @@ package io
 import chisel3._
 import chisel3.experimental.{Analog, attach}
 import chisel3.util.{switch, is, RegEnable, Counter}
-import utility.{I2CIO,TriStateBusDriverIO}
+import utility.{I2CIO, TriStateBusDriverIO}
 import utility.Constants._
 import utility.Errors._
 import utility.ClockDividerByFreq
@@ -15,14 +15,18 @@ import utility.TriStateBusDriver
 object I2CController {
   // Note: currently supports write only
   object State extends ChiselEnum {
-    val idle, start, startSdat, writeDeviceAddr, waitAckDeviceAddr, writeRegAddr, waitAckRegAddr, writeData, waitAckData, stop, error = Value
+    val idle, start, startSdat, writeDeviceAddr, waitAckDeviceAddr,
+        writeRegAddr, waitAckRegAddr, writeData, waitAckData, stop, error =
+      Value
   }
 }
 
 // I2C Controller IO bundle
 class I2CControllerIO extends Bundle {
   val i2cio = new I2CIO
-  val start = Input(Bool())         // same semantics as reset, execution begins on negedge
+  val start = Input(
+    Bool()
+  ) // same semantics as reset, execution begins on negedge
   val regAddr = Input(UInt(7.W))
   val inData = Input(UInt(9.W))
   // val out = Output(UInt(8.W))
@@ -61,15 +65,19 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   val outputClock = RegInit(false.B)
 
   // use 50Mhz clock for divider
-  val clockDivider = Module(new ClockDividerByFreq(CYCLONE_II_FREQ, clockFreq * 2))
-  var driver_negedge = ~clockDivider.io.clk & RegNext(clockDivider.io.clk, false.B)
-  var driver_posedge = clockDivider.io.clk & RegNext(~clockDivider.io.clk, false.B)
+  val clockDivider = Module(
+    new ClockDividerByFreq(CYCLONE_II_FREQ, clockFreq * 2)
+  )
+  var driver_negedge =
+    ~clockDivider.io.clk & RegNext(clockDivider.io.clk, false.B)
+  var driver_posedge =
+    clockDivider.io.clk & RegNext(~clockDivider.io.clk, false.B)
   // internal clock at clockFreq frequency
   val sclk = RegInit(false.B)
   // flip sclk on posedge of clockDriver
-  when (driver_posedge) {
+  when(driver_posedge) {
     sclk := ~sclk
-  } .elsewhen (driver_negedge) {
+  }.elsewhen(driver_negedge) {
     // update sda and drive only in the middle of the sclk low signal
     sdaOutRegReal := sdaOutReg
     sdaDriveRegReal := sdaDriveReg
@@ -83,9 +91,9 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   // connect TriState wrapper to actual pin
   io.i2cio.sclk <> sclkIO.io.bus
   sclkIO.io.drive := true.B
-  when (outputClock) {
+  when(outputClock) {
     sclkIO.io.out := sclk
-  } .otherwise {
+  }.otherwise {
     // update sda line only in mid sdc change
     sclkIO.io.out := true.B
   }
@@ -98,8 +106,8 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   val bitCounter = Reg(UInt(4.W))
 
   // same semantics as reset, on negedge
-  //when (~io.start & RegNext(io.start, false.B)) {
-  when (io.start) {
+  // when (~io.start & RegNext(io.start, false.B)) {
+  when(io.start) {
     doneReg := false.B
     // we need to remove the done in the same tick, otherwise mistaken it for done form the outside..
     io.done := false.B
@@ -116,32 +124,32 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   }
 
   val ackVal = RegInit(false.B)
-  when (sclk && !sda.io.drive) {
+  when(sclk && !sda.io.drive) {
     // we are ACK if we see 0 at any point of a high sclk
     ackVal := ackVal & sda.io.in
-  } .elsewhen (!sclk && driver_negedge) {
+  }.elsewhen(!sclk && driver_negedge) {
     // reset value to NACK in the middle of a low sclk
     ackVal := true.B
   }
 
   // state machine works at sclk clock
-  when (sclk_negedge || forceImmediateStateChangeReg) {
-    when (forceImmediateStateChangeReg) {
+  when(sclk_negedge || forceImmediateStateChangeReg) {
+    when(forceImmediateStateChangeReg) {
       // one time request
       forceImmediateStateChangeReg := false.B
     }
 
-    switch (stateReg) {
-      is (idle) {
+    switch(stateReg) {
+      is(idle) {
         // output high on clock
         outputClock := false.B
         // loop in itself
       }
-      is (start) {
+      is(start) {
         // this is just a buffer state to buffer from the previous transfer
         nextState := startSdat
       }
-      is (startSdat) {
+      is(startSdat) {
         // we do a falling sdat edge
         // but we don't connect the clock yet, so we'll get falling clock edge
         // only in the next state
@@ -150,32 +158,32 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
         // reset the bit counter for next step
         bitCounter := 0.U
       }
-      is (writeDeviceAddr) {
+      is(writeDeviceAddr) {
         // we connect the output sclk to internal sclk now so we get a falling edge on outer sclk
         outputClock := true.B
 
         sdaDriveReg := true.B
-        when (bitCounter < 7.U) {
+        when(bitCounter < 7.U) {
           sdaOutReg := (deviceAddr.U >> (6.U - bitCounter)) & 1.U
           bitCounter := bitCounter + 1.U
-        } .otherwise {
+        }.otherwise {
           // last bit is r/w bit, we send read=0
           sdaOutReg := false.B
           // We've sent the last bit, advance to next stage
           nextState := waitAckDeviceAddr
         }
       }
-      is (waitAckDeviceAddr) {
+      is(waitAckDeviceAddr) {
         // consists of two states - first we release the drive
         // then we read the is sda line
-        when (sdaDriveReg) {
+        when(sdaDriveReg) {
           sdaDriveReg := false.B
-        } .otherwise {
-          when (ackVal === 1.U) {
+        }.otherwise {
+          when(ackVal === 1.U) {
             // we got nack
             errorCodeReg := ERR_I2C_NACK1.U
             nextState := error
-          } .otherwise {
+          }.otherwise {
             // we got ack
             nextState := writeRegAddr
             // reset the bit counter for next step
@@ -190,11 +198,11 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
           }
         }
       }
-      is (writeRegAddr) {
+      is(writeRegAddr) {
         sdaDriveReg := true.B
-        when (bitCounter < 7.U) {
+        when(bitCounter < 7.U) {
           sdaOutReg := (io.regAddr >> (6.U - bitCounter)) & 1.U
-        } .elsewhen (bitCounter === 7.U) {
+        }.elsewhen(bitCounter === 7.U) {
           // the last transmitted here is the msb of the 9-bit data
           sdaOutReg := (io.inData >> 8.U) & 1.U
           // We've sent the last bit, advance to next stage
@@ -202,17 +210,17 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
         }
         bitCounter := bitCounter + 1.U
       }
-      is (waitAckRegAddr) {
+      is(waitAckRegAddr) {
         // consists of two states - first we release the drive
         // then we read the is sda line
-        when (sdaDriveReg) {
+        when(sdaDriveReg) {
           sdaDriveReg := false.B
-        } .otherwise {
-          when (ackVal === 1.U) {
+        }.otherwise {
+          when(ackVal === 1.U) {
             // we got nack
             errorCodeReg := ERR_I2C_NACK2.U
             nextState := error
-          } .otherwise {
+          }.otherwise {
             // we got ack
             nextState := writeData
             // reset the bit counter for next step
@@ -227,26 +235,26 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
           }
         }
       }
-      is (writeData) {
+      is(writeData) {
         sdaDriveReg := true.B
         sdaOutReg := (io.inData >> (7.U - bitCounter)) & 1.U
         bitCounter := bitCounter + 1.U
-        when (bitCounter === 7.U) {
+        when(bitCounter === 7.U) {
           // We've sent the last bit, advance to next stage
           nextState := waitAckData
         }
       }
-      is (waitAckData) {
+      is(waitAckData) {
         // consists of two states - first we release the drive
         // then we read the is sda line
-        when (sdaDriveReg) {
+        when(sdaDriveReg) {
           sdaDriveReg := false.B
-        } .otherwise {
-          when (ackVal === 1.U) {
+        }.otherwise {
+          when(ackVal === 1.U) {
             // we got nack
             errorCodeReg := ERR_I2C_NACK3.U
             nextState := error
-          } .otherwise {
+          }.otherwise {
             // we got ack
             nextState := stop
 
@@ -259,13 +267,13 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
           }
         }
       }
-      is (stop) {
+      is(stop) {
         // consists of two steps, first we do sda=0, clk=0
         // then we raise sda=1 and go to idle state which ensures clock doesn't go down
-        when (~sdaDriveReg) {
+        when(~sdaDriveReg) {
           sdaOutReg := false.B
           sdaDriveReg := true.B
-        } .otherwise {
+        }.otherwise {
           sdaOutReg := true.B
           // disconnect clock from internal clock so it doesn't go down
           outputClock := false.B
@@ -275,7 +283,7 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
           nextState := idle
         }
       }
-      is (error) {
+      is(error) {
         // loop in itself
         errorReg := true.B
       }

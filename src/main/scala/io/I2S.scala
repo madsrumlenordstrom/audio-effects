@@ -7,8 +7,8 @@ import utility.Errors._
 
 class I2SIO(isOutput: Int, channelWidth: Int) extends Bundle {
   // pins
-  val lrc = Input(Bool())           // left or right
-  val bclk = Input(Bool())          // we operate in slave mode
+  val lrc = Input(Bool()) // left or right
+  val bclk = Input(Bool()) // we operate in slave mode
   val dat = if (isOutput == 0) {
     Input(Bool())
   } else {
@@ -16,11 +16,14 @@ class I2SIO(isOutput: Int, channelWidth: Int) extends Bundle {
   }
 
   // one for each channel
-  val data = Vec(2, if (isOutput == 0) {
-    Output(UInt(channelWidth.W))
-  } else {
-    Input(UInt(channelWidth.W))
-  })
+  val data = Vec(
+    2,
+    if (isOutput == 0) {
+      Output(UInt(channelWidth.W))
+    } else {
+      Input(UInt(channelWidth.W))
+    }
+  )
   // true when updating
   val sync = Output(Bool())
 }
@@ -43,7 +46,6 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
   val syncReg = RegInit(false.B)
   io.sync := syncReg
 
-
   // synced with tempDataReg on lrc posedge to ensure consistent values
   val dataReg = Reg(Vec(2, UInt(channelWidth.W)))
   val datReg = RegInit(false.B)
@@ -53,7 +55,7 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
     datReg := RegNext(io.dat)
   } else {
     dataReg <> io.data
-    //io.dat := datReg
+    // io.dat := datReg
   }
 
   val channelReg = RegInit(0.U(1.W))
@@ -62,8 +64,8 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
 
   syncReg := false.B
 
-  when (bclk_posedge) {
-    when (lrcReg) {
+  when(bclk_posedge) {
+    when(lrcReg) {
       // in mid sync
       dataReg(0) := tempDataReg(0)
       dataReg(1) := tempDataReg(1)
@@ -72,27 +74,30 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
 
       bitsLeftReg := channelWidth.U
       channelReg := 0.U // left channel
-    } .otherwise {
+    }.otherwise {
       // not in lrc, reading data
       if (isOutput == 0) {
-        when (bitsLeftReg > 0.U) {
-          tempDataReg(channelReg) := tempDataReg(channelReg)(channelWidth - 2, 0) ## datReg
-          when (channelReg === 0.U && bitsLeftReg === 1.U) {
+        when(bitsLeftReg > 0.U) {
+          tempDataReg(channelReg) := tempDataReg(channelReg)(
+            channelWidth - 2,
+            0
+          ) ## datReg
+          when(channelReg === 0.U && bitsLeftReg === 1.U) {
             channelReg := 1.U
             bitsLeftReg := channelWidth.U
-          } .otherwise {
+          }.otherwise {
             bitsLeftReg := bitsLeftReg - 1.U
           }
         }
       }
     }
   }
- 
+
   if (isOutput == 1) {
     val dontChange = RegInit(false.B)
     // lrc posedge is 2 clocks delayed, so we are here about in the middle of it
     // so we are somewhere around posedge of bclk with high lrc
-    when (lrc_posedge) {
+    when(lrc_posedge) {
       tempDataReg(0) := dataReg(0)
       tempDataReg(1) := dataReg(1)
       bitsLeftReg := channelWidth.U
@@ -104,23 +109,23 @@ class I2S(isOutput: Int, channelWidth: Int) extends Module {
 
     // we next time we bclk_posedge must be after lrc_posedge, and we are actually
     // beause of 2 ticks delay at negedge, so time to change anyway..
-    when (bclk_posedge && bitsLeftReg > 0.U) {
-      when (dontChange) {
+    when(bclk_posedge && bitsLeftReg > 0.U) {
+      when(dontChange) {
         dontChange := false.B
-      } .otherwise {
+      }.otherwise {
         // if we finished with the first channel, switch to the second
-        when (channelReg === 0.U && bitsLeftReg === 1.U) {
+        when(channelReg === 0.U && bitsLeftReg === 1.U) {
           channelReg := 1.U
           bitsLeftReg := channelWidth.U
-        } .otherwise {
+        }.otherwise {
           bitsLeftReg := bitsLeftReg - 1.U
         }
       }
     }
 
-    when (bitsLeftReg > 0.U) {
+    when(bitsLeftReg > 0.U) {
       io.dat := tempDataReg(channelReg)(bitsLeftReg - 1.U)
-    } .otherwise {
+    }.otherwise {
       io.dat := false.B
     }
   }
