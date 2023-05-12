@@ -38,9 +38,9 @@ The signal path is defined in ```src/main/scala/audio/DSPModules.scala```:
 object DSPModules {
   // Specify which effects to use
   val effects = List(
-    Module(new FIRFilter(Seq(1.S,2.S,3.S))),
-    Module(new ClampDistortion(0x0000)),
-    Module(new VolumeControl(0x0000)),
+    Module(new ClampDistortion(16, 16384)),
+    Module(new MovingAverage(16)),
+    Module(new VolumeControl(8))
   )
 }
 ```
