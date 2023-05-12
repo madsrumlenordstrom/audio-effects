@@ -34,7 +34,7 @@ class AudioProcessingFrame extends Module {
 
   // Send signals to modules
   val write = Wire(Vec(effects.length, Bool()))
-  val strdCtrl = Wire(Vec(effects.length, Bool()))
+  val strdCtrl = Wire(Vec(effects.length, UInt(CTRL_WIDTH.W)))
   for (i <- 0 until effects.length) {
     write(i) := WireDefault(false.B)
     strdCtrl(i) := effects(i).io.strdCtrlSig
