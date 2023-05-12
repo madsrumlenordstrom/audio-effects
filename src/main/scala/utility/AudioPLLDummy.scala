@@ -13,7 +13,8 @@ class AudioPLL() extends BlackBox with HasBlackBoxInline {
     val c0 = Output(Bool())
     val locked = Output(Bool())
   })
-  setInline("AudioPLLDummy.v",
+  setInline(
+    "AudioPLLDummy.v",
     s"""
        |module AudioPLL(
        |    input inclk0,

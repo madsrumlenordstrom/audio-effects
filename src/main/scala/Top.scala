@@ -1,9 +1,9 @@
 import chisel3._
 import chisel3.util.{Counter, log2Up}
 
-import io.{WM8731Controller,WM8731IO}
-import io.{LEDController,LEDIO}
-import audio.{AudioProcessingFrame,AudioProcessingFrameIO, DSPModules}
+import io.{WM8731Controller, WM8731IO}
+import io.{LEDController, LEDIO}
+import audio.{AudioProcessingFrame, AudioProcessingFrameIO, DSPModules}
 import utility.Constants._
 import utility.SevenSegDecoder
 
@@ -24,8 +24,10 @@ class Top() extends Module {
     val wm8731io = new WM8731IO
     val sw = Vec(18, Input(Bool())) // switches
     val dspWrite = Input(Bool())
-    val dspAddrSevSeg = Vec(2, Vec(7, Output(Bool()))) // seven segment addr display
-    val dspCtrlSevSeg = Vec(2, Vec(7, Output(Bool()))) // seven segment ctrl display
+    val dspAddrSevSeg =
+      Vec(2, Vec(7, Output(Bool()))) // seven segment addr display
+    val dspCtrlSevSeg =
+      Vec(2, Vec(7, Output(Bool()))) // seven segment ctrl display
   })
 
   withReset(!reset.asBool) {
@@ -37,15 +39,15 @@ class Top() extends Module {
     // TODO: remove
     // gled8 - on
     io.ledio.gled(8) := true.B
-    //io.ledio.gled(1) := io.wm8731io.i2c.sclk
-    //io.ledio.gled(2) := ~io.wm8731io.i2c.sclk
-    //io.ledio.gled(3) := io.wm8731io.xck
-    //io.ledio.gled(4) := ~io.wm8731io.xck
+    // io.ledio.gled(1) := io.wm8731io.i2c.sclk
+    // io.ledio.gled(2) := ~io.wm8731io.i2c.sclk
+    // io.ledio.gled(3) := io.wm8731io.xck
+    // io.ledio.gled(4) := ~io.wm8731io.xck
     io.ledio.gled(5) := io.wm8731io.adc.adclrck
     io.ledio.gled(6) := ~io.wm8731io.adc.adclrck
     io.ledio.gled(7) := io.wm8731io.bclk
     io.ledio.gled(8) := ~io.wm8731io.bclk
-    
+
     val wm8731Ctrl = Module(new WM8731Controller())
     wm8731Ctrl.io.clock50 := io.clock50
     // connect pins from top module to controller module
@@ -59,7 +61,7 @@ class Top() extends Module {
     // TODO: move this connection to DSP module
 
     /// Connect to DSP Module
-    val dsp = Module(new(AudioProcessingFrame))
+    val dsp = Module(new (AudioProcessingFrame))
     val addrWidth = log2Up(DSPModules.effects.length)
 
     // Connect addressing switches
@@ -82,7 +84,7 @@ class Top() extends Module {
     dsp.io.write := ~io.dspWrite
     dsp.io.dspAddr := dspAddr.asUInt
     dsp.io.dspCtrl := dspCtrl.asUInt
-    
+
     dsp.io.inData := wm8731Ctrl.io.inData
     dsp.io.clk := wm8731Ctrl.io.sync
 
@@ -95,17 +97,17 @@ class Top() extends Module {
     }
     val dspCtrlSevSeg0 = Module(new SevenSegDecoder)
     val dspCtrlSevSeg1 = Module(new SevenSegDecoder)
-    dspCtrlSevSeg0.io.sw := dspCtrl.asUInt(3,0)
-    dspCtrlSevSeg1.io.sw := dspCtrl.asUInt(7,4)
+    dspCtrlSevSeg0.io.sw := dspCtrl.asUInt(3, 0)
+    dspCtrlSevSeg1.io.sw := dspCtrl.asUInt(7, 4)
     for (i <- 0 until io.dspCtrlSevSeg(0).length) {
       io.dspCtrlSevSeg(0)(i) := dspCtrlSevSeg0.io.seg(i)
       io.dspCtrlSevSeg(1)(i) := dspCtrlSevSeg1.io.seg(i)
     }
 
-    when (io.sw(3)) {
+    when(io.sw(3)) {
       // bypass dsp
       wm8731Ctrl.io.outData := wm8731Ctrl.io.inData
-    } .otherwise {
+    }.otherwise {
       wm8731Ctrl.io.outData := dsp.io.outData
     }
 
@@ -114,16 +116,16 @@ class Top() extends Module {
     // use rldeds to display current input, 20 times a second
     val (_, counterWrap) = Counter(true.B, CYCLONE_II_FREQ / 20)
     val maxLevelReg = RegInit(0.S(24.W))
-    when (wm8731Ctrl.io.inData > maxLevelReg) {
+    when(wm8731Ctrl.io.inData > maxLevelReg) {
       maxLevelReg := wm8731Ctrl.io.inData
     }
-    when (counterWrap) {
+    when(counterWrap) {
       for (i <- 0 until 18) {
-          when (maxLevelReg >= scala.math.pow(2, 22 - i).toLong.S) {
-            rledReg(i) := true.B
-          } .otherwise {
-            rledReg(i) := false.B
-          }
+        when(maxLevelReg >= scala.math.pow(2, 22 - i).toLong.S) {
+          rledReg(i) := true.B
+        }.otherwise {
+          rledReg(i) := false.B
+        }
       }
       maxLevelReg := 0.S
     }
@@ -132,10 +134,10 @@ class Top() extends Module {
     io.ledio.gled(0) := wm8731Ctrl.io.ready
 
     // blinking rled0 indicates wm8731 error
-    when (wm8731Ctrl.io.error) {
+    when(wm8731Ctrl.io.error) {
       ledCtrl.io.error := true.B
       ledCtrl.io.errorCode := wm8731Ctrl.io.errorCode
-    } .otherwise {
+    }.otherwise {
       for (i <- 0 until 18) {
         io.ledio.rled(i) := rledReg(i)
       }

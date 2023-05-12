@@ -4,16 +4,17 @@ import chisel3._
 import chisel3.util.HasBlackBoxInline
 
 class AudioPLLDriverIO extends Bundle {
-    val clock = Input(Clock())
-    val reset = Input(Bool())
-    val c0 = Output(Bool()) // 12MHz clock
+  val clock = Input(Clock())
+  val reset = Input(Bool())
+  val c0 = Output(Bool()) // 12MHz clock
 }
 
 // This module outputs 12MHz clock
 class AudioPLLDriver() extends BlackBox with HasBlackBoxInline {
   val io = IO(new AudioPLLDriverIO())
 
-  setInline("AudioPLLDriver.v",
+  setInline(
+    "AudioPLLDriver.v",
     s"""
        |module AudioPLLDriver(
        |    input clock,
