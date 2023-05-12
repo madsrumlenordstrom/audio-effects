@@ -5,14 +5,16 @@ import audio.Sounds._
 import chisel3._
 import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
-import firrtl.Utils// Specify which effects to use
+import firrtl.Utils // Specify which effects to use
 
 class AudioProcessingFrameSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   "AudioProcessingFrame" should "play" in {
-    test(new AudioProcessingFrame()).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+    test(new AudioProcessingFrame()).withAnnotations(
+      Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)
+    ) { dut =>
       // Function to write to a DSP module
-      def sendCtrlSig(addr: UInt, ctrl: UInt):Unit={
+      def sendCtrlSig(addr: UInt, ctrl: UInt): Unit = {
         dut.io.dspAddr.poke(addr)
         dut.io.dspCtrl.poke(ctrl)
         dut.io.write.poke(true.B)
@@ -27,7 +29,7 @@ class AudioProcessingFrameSpec extends AnyFlatSpec with ChiselScalatestTester {
       val outSamples = new Array[Short](samples.length)
 
       var finished = false
-      
+
       // no timeout, as a bunch of 0 samples would lead to a timeout.
       dut.clock.setTimeout(0)
 
@@ -58,4 +60,3 @@ class AudioProcessingFrameSpec extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 }
-

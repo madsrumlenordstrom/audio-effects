@@ -12,9 +12,11 @@ import utility.Constants.CTRL_WIDTH
 class VolumeControlSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   "VolumeControl" should "play" in {
-    test(new VolumeControl()).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+    test(new VolumeControl()).withAnnotations(
+      Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)
+    ) { dut =>
       // Function to write to the DSP module
-      def sendCtrlSig(ctrl: UInt):Unit={
+      def sendCtrlSig(ctrl: UInt): Unit = {
         dut.io.ctrlSig.poke(ctrl)
         dut.io.write.poke(true.B)
         dut.clock.step()
@@ -26,7 +28,7 @@ class VolumeControlSpec extends AnyFlatSpec with ChiselScalatestTester {
       val outSamples = new Array[Short](samples.length)
 
       var finished = false
-      
+
       // no timeout, as a bunch of 0 samples would lead to a timeout.
       dut.clock.setTimeout(0)
       dut.io.clk.poke(true.B)
@@ -54,4 +56,3 @@ class VolumeControlSpec extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 }
-

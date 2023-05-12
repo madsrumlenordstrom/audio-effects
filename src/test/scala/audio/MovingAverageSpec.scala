@@ -10,21 +10,23 @@ import firrtl.Utils
 class MovingAverageSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   "MovingAverage" should "play" in {
-    test(new MovingAverage()).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+    test(new MovingAverage()).withAnnotations(
+      Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)
+    ) { dut =>
       // Function to write to the DSP module
-      def sendCtrlSig(ctrl: UInt):Unit={
+      def sendCtrlSig(ctrl: UInt): Unit = {
         dut.io.ctrlSig.poke(ctrl)
         dut.io.write.poke(true.B)
         dut.clock.step()
         dut.io.ctrlSig.poke(0.U)
         dut.io.write.poke(false.B)
       }
-      
+
       val samples = getFileSamples("sample.wav")
       val outSamples = new Array[Short](samples.length)
 
       var finished = false
-      
+
       // no timeout, as a bunch of 0 samples would lead to a timeout.
       dut.clock.setTimeout(0)
       dut.io.clk.poke(true.B)
@@ -56,4 +58,3 @@ class MovingAverageSpec extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 }
-

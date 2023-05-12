@@ -20,49 +20,51 @@ class FIRFilterSpec extends AnyFlatSpec with ChiselScalatestTester {
       return tmp.toSeq
     }
 
-    test(new FIRFilter(Seq(1.S))).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
-      // Function to write to the DSP module
-      def sendCtrlSig(ctrl: UInt):Unit={
-        dut.io.ctrlSig.poke(ctrl)
-        dut.io.write.poke(true.B)
-        dut.clock.step()
-        dut.io.ctrlSig.poke(0.U)
-        dut.io.write.poke(false.B)
-      }
-      
-      val samples = getFileSamples("sample.wav")
-      val outSamples = new Array[Short](samples.length)
+    test(new FIRFilter(Seq(1.S)))
+      .withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) {
+        dut =>
+          // Function to write to the DSP module
+          def sendCtrlSig(ctrl: UInt): Unit = {
+            dut.io.ctrlSig.poke(ctrl)
+            dut.io.write.poke(true.B)
+            dut.clock.step()
+            dut.io.ctrlSig.poke(0.U)
+            dut.io.write.poke(false.B)
+          }
 
-      var finished = false
-      
-      // no timeout, as a bunch of 0 samples would lead to a timeout.
-      dut.clock.setTimeout(0)
-      dut.io.clk.poke(true.B)
-      dut.io.ctrlSig.poke(1.U)
-      dut.io.write.poke(true.B)
-      dut.clock.step()
-      dut.io.write.poke(false.B)
+          val samples = getFileSamples("sample.wav")
+          val outSamples = new Array[Short](samples.length)
 
-      // Write the samples
-      val th = fork {
-        for (s <- samples) {
-          dut.io.audioIn.poke(s.asSInt)
+          var finished = false
+
+          // no timeout, as a bunch of 0 samples would lead to a timeout.
+          dut.clock.setTimeout(0)
+          dut.io.clk.poke(true.B)
+          dut.io.ctrlSig.poke(1.U)
+          dut.io.write.poke(true.B)
           dut.clock.step()
-        }
-        finished = true
-      }
+          dut.io.write.poke(false.B)
 
-      // Playing in real-time does not work, so record the result
-      var idx = 0
-      while (!finished) {
-        val s = dut.io.audioOut.peek().litValue.toShort
-        outSamples(idx) = s
-        idx += 1
-        dut.clock.step()
-      }
-      th.join()
+          // Write the samples
+          val th = fork {
+            for (s <- samples) {
+              dut.io.audioIn.poke(s.asSInt)
+              dut.clock.step()
+            }
+            finished = true
+          }
 
-      saveArray(outSamples, "sample_out.wav")
-    }
+          // Playing in real-time does not work, so record the result
+          var idx = 0
+          while (!finished) {
+            val s = dut.io.audioOut.peek().litValue.toShort
+            outSamples(idx) = s
+            idx += 1
+            dut.clock.step()
+          }
+          th.join()
+
+          saveArray(outSamples, "sample_out.wav")
+      }
   }
 }
