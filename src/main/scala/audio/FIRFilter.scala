@@ -5,7 +5,7 @@ import chisel3._
 import utility.Constants.{CTRL_WIDTH, DATA_WIDTH}
 
 // Generalized FIR filter parameterized by the convolution coefficients
-class FIRFilter(coeffs: Seq[SInt]) extends DSPModule(1) {
+class FIRFilter(coeffs: Seq[SInt]) extends DSPModule {
   // Create the serial-in, parallel-out shift register
   val zs = Reg(Vec(coeffs.length, SInt((DATA_WIDTH + (CTRL_WIDTH / 2)).W)))
   when(io.clk) {

@@ -126,7 +126,7 @@ class Top() extends Module {
     val rledReg = Reg(Vec(18, Bool()))
     // use rldeds to display current input, 20 times a second
     val (_, counterWrap) = Counter(true.B, CYCLONE_II_FREQ / 20)
-    val maxLevelReg = RegInit(0.S(24.W))
+    val maxLevelReg = RegInit(0.S(DATA_WIDTH.W))
     when(wm8731Ctrl.io.inData > maxLevelReg) {
       maxLevelReg := wm8731Ctrl.io.inData
     }

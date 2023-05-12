@@ -41,8 +41,8 @@ class WM8731ControllerIO extends Bundle {
   val wm8731io = new WM8731IO // board pins
 
   // Mono
-  val inData = Output(SInt(24.W))
-  val outData = Input(SInt(24.W))
+  val inData = Output(SInt(DATA_WIDTH.W))
+  val outData = Input(SInt(DATA_WIDTH.W))
   val sync = Output(Bool()) // true when a frame is ready
 
   val combineChannels = Input(
@@ -94,7 +94,7 @@ class WM8731Controller extends Module {
   dummyAudioPLL.io.inclk0 := io.clock50.asClock
   dummyAudioPLL.io.areset := this.reset
 
-  val i2sIn = Module(new I2S(0, 24))
+  val i2sIn = Module(new I2S(0, DATA_WIDTH))
   i2sIn.io.bclk := io.wm8731io.bclk
   i2sIn.io.lrc := io.wm8731io.adc.adclrck
   i2sIn.io.dat := io.wm8731io.adc.adcdat
@@ -107,7 +107,7 @@ class WM8731Controller extends Module {
   }
   io.sync := i2sIn.io.sync
 
-  val i2sOut = Module(new I2S(1, 24))
+  val i2sOut = Module(new I2S(1, DATA_WIDTH))
   i2sOut.io.bclk := io.wm8731io.bclk
   i2sOut.io.lrc := io.wm8731io.dac.daclrck
   when(io.bypass) {
