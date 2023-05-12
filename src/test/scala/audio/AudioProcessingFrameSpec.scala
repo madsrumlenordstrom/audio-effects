@@ -35,10 +35,6 @@ class AudioProcessingFrameSpec extends AnyFlatSpec with ChiselScalatestTester {
       dut.io.clk.poke(true.B)
       dut.io.write.poke(false.B)
 
-      // Configure modules
-      sendCtrlSig(0.U, 128.U)
-      sendCtrlSig(1.U, 32.U)
-
       // Write the samples
       val th = fork {
         for (s <- samples) {

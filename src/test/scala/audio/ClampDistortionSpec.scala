@@ -10,7 +10,7 @@ import firrtl.Utils
 class ClampDistortionSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   "ClampDistortion" should "play" in {
-    test(new ClampDistortion()).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
+    test(new ClampDistortion(16, 4096 * 2)).withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) { dut =>
       // Function to write to the DSP module
       def sendCtrlSig(ctrl: UInt):Unit={
         dut.io.ctrlSig.poke(ctrl)

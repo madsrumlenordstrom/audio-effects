@@ -23,7 +23,8 @@ class AudioProcessingFrame extends Module {
   val io = IO(new AudioProcessingFrameIO())
 
   // Initialize modules
-  val effects = (0 until DSPModules.effects.length).map(i => DSPModules.effects(i))
+  val effects =
+    (0 until DSPModules.effects.length).map(i => DSPModules.effects(i))
 
   // Print configuration
   println("\nAudio chain is configured as:")
