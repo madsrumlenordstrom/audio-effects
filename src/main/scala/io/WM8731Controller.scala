@@ -55,10 +55,7 @@ class WM8731ControllerIO extends Bundle {
 object WM8731Controller {
   // Note: currently supports write only
   object State extends ChiselEnum {
-    val inReset, initRegs, resetDevice, outputsPowerDown, setLeftOutput,
-        setRightOutput, setLeftLineIn, setRightLineIn, setFormat, setSampling,
-        setAnalogPathControl, setDigitalPathControl, setActivate, powerOn,
-        waitI2C, ready, error = Value
+    val inReset, writeRegister, waitI2C, ready, error = Value
   }
 }
 
@@ -78,7 +75,6 @@ class WM8731Controller extends Module {
   io.errorCode := errorCodeReg
 
   var stateReg = RegInit(inReset)
-  var nextStateAfterI2C = RegInit(inReset)
 
   // setup master clock
   val audioPLL = Module(new AudioPLLDriver())
@@ -128,117 +124,79 @@ class WM8731Controller extends Module {
   i2cCtrl.io.regAddr := i2cCtrlRegAddrReg
   i2cCtrl.io.inData := i2cCtrlInDataReg
 
-  switch(stateReg) {
-    is(inReset) {
-      stateReg := resetDevice
+  // list of (reg addr, reg value) to configure
+  val registerVals = VecInit(
+    VecInit("b0001111".U(7.W),      // reset register
+       "b000000000".U(9.W)),        // reset device
+
+    VecInit("b0000110".U(7.W),      // power register
+       "b000010000".U(9.W)),        // outputs power down
+
+    VecInit("b0000010".U(7.W),      // left line out
+       "b001111001".U(9.W)),        // Vol=0db 
+
+    VecInit("b0000011".U(7.W),      // right line out
+       "b001111001".U(9.W)),        // Vol=0db 
+
+    VecInit("b0000000".U(7.W),      // left line in
+       "b000010111".U(9.W)),        // Vol=default, mute=0, load_both=0
+
+    VecInit("b0000001".U(7.W),      // right line in
+       "b000010111".U(9.W)),        // Vol=default, mute=0, load_both=0
+
+    VecInit("b0000111".U(7.W),      // digital audio interface format
+       "b001011011".U(9.W)),        // Data = dsp, msb on 2nd bit, Bit length = 24 bits, master = on
+
+    VecInit("b0001000".U(7.W),      // sampling control
+       "b000000001".U(9.W)),        // mode=usb, 250fs, sample rate - 48kHz
+
+    VecInit("b0000100".U(7.W),      // analog audio path control
+       "b000010010".U(9.W)),        // DACSEL on, BYPASS off, INSEL=Line in, Mic mute to ADC
+
+    VecInit("b0000101".U(7.W),      // digital audio path control
+       "b000000000".U(9.W)),        // DAC soft mute control off
+
+    VecInit("b0001001".U(7.W),      // active control
+       "b000000001".U(9.W)),        // active
+
+    VecInit("b0000110".U(7.W),      // power register
+       "b000000000".U(9.W)),        // all on
+  )
+
+  val registerNumReg = RegInit(0.U(7.W))
+
+  switch (stateReg) {
+    is (inReset) {
+      stateReg := writeRegister
     }
-    is(resetDevice) {
-      // TODO: doesn't seem to actually make any difference...
-      i2cCtrlRegAddrReg := "b0001111".U // reset register
-      i2cCtrlInDataReg := "b000000000".U // reset device
+    is (writeRegister) {
+      i2cCtrlRegAddrReg := registerVals(registerNumReg)(0)
+      i2cCtrlInDataReg := registerVals(registerNumReg)(1)
       i2cCtrlStartReg := true.B
       stateReg := waitI2C
-      nextStateAfterI2C := outputsPowerDown
     }
-    is(outputsPowerDown) {
-      i2cCtrlRegAddrReg := "b0000110".U // power register
-      i2cCtrlInDataReg := "b000010000".U // outputs power down
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := setLeftOutput
-    }
-    is(setLeftOutput) {
-      i2cCtrlRegAddrReg := "b0000010".U // left line out
-      // i2cCtrlInDataReg  := "b001101000".U // Vol=a bit quieter
-      i2cCtrlInDataReg := "b001111001".U // Vol=a bit quieter
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := setRightOutput
-    }
-    is(setRightOutput) {
-      i2cCtrlRegAddrReg := "b0000011".U // right line out
-      // i2cCtrlInDataReg  := "b001101000".U // Vol=a bit quieter
-      i2cCtrlInDataReg := "b001111001".U // Vol=a bit quieter
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := setLeftLineIn
-    }
-    is(setLeftLineIn) {
-      i2cCtrlRegAddrReg := "b0000000".U // left line in
-      // i2cCtrlInDataReg  := "b000010011".U // Vol=quieter, mute=0, load_both=0
-      i2cCtrlInDataReg := "b000010111".U // Vol=default, mute=0, load_both=0
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := setRightLineIn
-    }
-    is(setRightLineIn) {
-      i2cCtrlRegAddrReg := "b0000001".U // right line in
-      // i2cCtrlInDataReg  := "b000010011".U // Vol=quieter, mute=0, load_both=0
-      i2cCtrlInDataReg := "b000010111".U // Vol=default, mute=0, load_both=0
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := setFormat
-    }
-    is(setFormat) {
-      i2cCtrlRegAddrReg := "b0000111".U // digital audio interface format
-      // i2cCtrlInDataReg  := "b001001001".U // Data = LJust, Bit length = 24 bits, master = on
-      i2cCtrlInDataReg := "b001011011".U // Data = dsp, msb on 2nd bit, Bit length = 24 bits, master = on
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := setSampling
-    }
-    is(setSampling) {
-      i2cCtrlRegAddrReg := "b0001000".U // sampling control
-      i2cCtrlInDataReg := "b000000001".U // mode=usb, 250fs, sample rate - 48kHz
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := setAnalogPathControl
-    }
-    is(setAnalogPathControl) {
-      i2cCtrlRegAddrReg := "b0000100".U // analog audio path control
-      i2cCtrlInDataReg := "b000010010".U // DACSEL on, BYPASS off, INSEL=Line in, Mic mute to ADC
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := setDigitalPathControl
-    }
-    is(setDigitalPathControl) {
-      i2cCtrlRegAddrReg := "b0000101".U // digital audio path control
-      i2cCtrlInDataReg := "b000000000".U // DAC soft mute control off
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := setActivate
-    }
-    is(setActivate) {
-      i2cCtrlRegAddrReg := "b0001001".U // active control
-      i2cCtrlInDataReg := "b000000001".U // active
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := powerOn
-    }
-    is(powerOn) {
-      i2cCtrlRegAddrReg := "b0000110".U // power register
-      i2cCtrlInDataReg := "b000000000".U // all on
-      i2cCtrlStartReg := true.B
-      stateReg := waitI2C
-      nextStateAfterI2C := ready
-    }
-    is(waitI2C) {
+    is (waitI2C) {
       // trigger start by negedge
       i2cCtrlStartReg := false.B
       when(i2cCtrl.io.error) {
         // distinguish between i2c errors in different states by encoding the next state..
-        errorCodeReg := i2cCtrl.io.errorCode | (nextStateAfterI2C.asUInt << 4.U)
+        errorCodeReg := i2cCtrl.io.errorCode | (registerNumReg << 4.U)
         stateReg := error
       }
       when(i2cCtrl.io.done) {
-        stateReg := nextStateAfterI2C
+        when (registerNumReg === registerVals.length.U - 1.U) {
+          stateReg := ready
+        } .otherwise {
+          registerNumReg := registerNumReg + 1.U
+          stateReg := writeRegister
+        }
       }
     }
-    is(ready) {
+    is (ready) {
       readyReg := true.B
       // loop in this state
     }
-    is(error) {
+    is (error) {
       errorReg := true.B
       // loop in this state
     }
