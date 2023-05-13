@@ -6,6 +6,7 @@ import io.{LEDController, LEDIO}
 import audio.{AudioProcessingFrame, AudioProcessingFrameIO, DSPModules}
 import utility.Constants._
 import utility.SevenSegDecoder
+import utility.VolumeIndicator
 
 /// Switches:       LOW                     HIGH
 /// SW0          select one channel     combine channels
@@ -122,35 +123,21 @@ class Top() extends Module {
       wm8731Ctrl.io.outData := dsp.io.outData
     }
 
-    // TODO: move to a module
-    val rledReg = Reg(Vec(18, Bool()))
-    // use rldeds to display current input, 20 times a second
-    val (_, counterWrap) = Counter(true.B, CYCLONE_II_FREQ / 20)
-    val maxLevelReg = RegInit(0.S(DATA_WIDTH.W))
-    when(wm8731Ctrl.io.inData > maxLevelReg) {
-      maxLevelReg := wm8731Ctrl.io.inData
-    }
-    when(counterWrap) {
-      for (i <- 0 until 18) {
-        when(maxLevelReg >= scala.math.pow(2, 22 - i).toLong.S) {
-          rledReg(i) := true.B
-        }.otherwise {
-          rledReg(i) := false.B
-        }
-      }
-      maxLevelReg := 0.S
-    }
-
     // gled0 indicates whether wm8731 ready
     io.ledio.gled(0) := wm8731Ctrl.io.ready
+
+    val volumeIndicator = Module(new VolumeIndicator)
+    // indicate the volume of what we are about to hear
+    volumeIndicator.io.data := wm8731Ctrl.io.outData
 
     // blinking rled0 indicates wm8731 error
     when(wm8731Ctrl.io.error) {
       ledCtrl.io.error := true.B
       ledCtrl.io.errorCode := wm8731Ctrl.io.errorCode
     }.otherwise {
+      // forward the volume indication over the rleds
       for (i <- 0 until 18) {
-        io.ledio.rled(i) := rledReg(i)
+        io.ledio.rled(i) := volumeIndicator.io.ledio.rled(i)
       }
     }
   }
