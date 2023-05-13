@@ -46,8 +46,8 @@ object DSPModules {
 ```
 This would create the signal path: FIRFilter -> ClampDistortion -> VolumeControl
 
-To program the FPGA, plug in your DE2-70 development board and make sure you have quartus installed.
+To program the FPGA, plug in your DE2-70 development board via USB blaster and make sure you have quartus installed. Run the following command:
 ```
 make program
 ```
-Plug in an AUX cable to the ```LINE IN``` plug and either a speaker or headphones to the ```LINE OUT``` plug. Play some audio and you should hear it come through. If the audio does not come through right away you might need to press ```KEY 0``` (reset) a few times.
+Plug in an AUX cable to the ```LINE IN``` plug and either a speaker or headphones to the ```LINE OUT``` plug. Play some audio and you should hear it come through. Make sure to unplug the USB blaster after programming the FPGA since it can introduce noise into the signal path. If the audio does not come through right away you might need to press ```KEY 0``` (reset) a few times.
