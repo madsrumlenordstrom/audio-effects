@@ -7,6 +7,7 @@ GTKWAVE ?= gtkwave
 SRCDIR = $(CURDIR)/src
 SCALADIR = $(SRCDIR)/main/scala
 TESTDIR = $(SRCDIR)/test/scala
+QUARTUSDIR = $(CURDIR)/quartus
 
 # All sources and test sources
 SRCS = $(shell find $(SCALADIR) -type f -name '*.scala')
@@ -41,6 +42,17 @@ testall: $(SRCS) $(TESTS)
 .PHONY: test
 test: $(SRCS) $(TESTS)
 	$(SBT) "testOnly $(TESTTARGET)"
+
+# Build and program FPGA
+.PHONY: program
+program: run
+	$(MAKE) -C $(QUARTUSDIR)
+
+# Program FPGA without building
+.PHONY: flash
+flash:
+	$(MAKE) -C $(QUARTUSDIR) flash
+
 
 # View waveform in GTKWave
 .PHONY: wave
