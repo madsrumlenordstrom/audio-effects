@@ -124,9 +124,10 @@ class I2CController(deviceAddr: Int, clockFreq: Int) extends Module {
   }
 
   val ackVal = RegInit(false.B)
-  when(sclk && !sda.io.drive) {
-    // we are ACK if we see 0 at any point of a high sclk
-    ackVal := ackVal & sda.io.in
+  when(sclk_posedge && !sda.io.drive) {
+    // we are ACK if we see 0 at sclk posedge
+    // double sample the external input to avoid metastability
+    ackVal := RegNext(RegNext(sda.io.in))
   }.elsewhen(!sclk && driver_negedge) {
     // reset value to NACK in the middle of a low sclk
     ackVal := true.B
