@@ -29,8 +29,20 @@ class VolumeIndicator extends Module {
     maxLevelReg := io.data
   }
   when (counterWrap) {
+    // we get 24 bit signed values, thus abs(data) is in [0, 2^23)
+    // we can output 18 levels
+    // let us output the range [2^13 + 2^12, 2^22 + 2^21) in logarithmic half steps
+    // meaning led i will be on if
+    //   if i is even: if maxLevel is >= 2^(22 - i/2)
+    //   if i is odd: if maxLevel is >= 2^(22 - (i+1)/2) + 2^(22 - (i+1)/2 - 1)
     for (i <- 0 until 18) {
-      when (maxLevelReg >= scala.math.pow(2, 22 - i).toLong.S) {
+      val cond =
+          if (i % 2 == 0) {
+            (maxLevelReg >= scala.math.pow(2, 22 - i / 2).toLong.S)
+          } else {
+            (maxLevelReg >= (scala.math.pow(2, 22 - (i+1) / 2).toLong.S) + scala.math.pow(2, 22 - (i+1) / 2 - 1).toLong.S)
+          }
+      when (cond) {
         rledReg(i) := true.B
       } .otherwise {
         rledReg(i) := false.B
