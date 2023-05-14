@@ -159,6 +159,14 @@ set_location_assignment PIN_AE17 -to io_dspCtrlSevSeg_1_4
 set_location_assignment PIN_AF17 -to io_dspCtrlSevSeg_1_5
 set_location_assignment PIN_AD17 -to io_dspCtrlSevSeg_1_6
 
+# Bypass indicator
+set_location_assignment PIN_AF12 -to io_dspBypass
+set_location_assignment PIN_AC17 -to io_dspBypass
+
+# Stored bypass indicator
+set_location_assignment PIN_L6 -to io_dspStrdBypass
+set_location_assignment PIN_K6 -to io_dspStrdBypass
+
 set_global_assignment -name VERILOG_FILE ../build/AudioPLLDriver.v
 set_global_assignment -name VERILOG_FILE ../build/TriStateBusDriver.v
 set_global_assignment -name VERILOG_FILE ../build/Top.v
