@@ -89,7 +89,7 @@ class Top() extends Module {
     // Connect bypass switch
     println("\n\nBypass switch configured as:")
     val dspBypass = Wire(Bool())
-    val swhIdx = io.sw.length - addrWidth - CTRL_WIDTH - 1
+    val swhIdx = 4
     dspBypass := io.sw(swhIdx).asBool
     print("SW" + swhIdx + " ")
     println("\n")
