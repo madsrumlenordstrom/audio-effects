@@ -10,5 +10,5 @@ class VolumeControl(defaultCtrl: Int = 16) extends DSPModule(defaultCtrl) {
   // Multiply by control signal and shift back to non fixed point
   val postGain =
     (audioInFix * ctrlReg.zext)(DATA_WIDTH + CTRL_WIDTH - 1, CTRL_WIDTH).asSInt
-  io.audioOut := postGain
+  audioOut := postGain
 }

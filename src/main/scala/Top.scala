@@ -31,6 +31,8 @@ class Top() extends Module {
       Vec(2, Vec(7, Output(Bool()))) // seven segment ctrl display
     val dspStrdSevSeg =
       Vec(2, Vec(7, Output(Bool()))) // seven segment stored ctrl display
+    val dspStrdBypass = Output(Bool()) // Stored bypass signal
+    val dspBypass = Output(Bool()) // Current input bypass value
   })
 
   withReset(!reset.asBool) {
@@ -83,10 +85,19 @@ class Top() extends Module {
       print("SW" + swhIdx + " ")
       dspCtrl(i) := io.sw(swhIdx).asUInt
     }
+
+    // Connect bypass switch
+    println("\n\nBypass switch configured as:")
+    val dspBypass = Wire(Bool())
+    val swhIdx = io.sw.length - addrWidth - CTRL_WIDTH - 1
+    dspBypass := io.sw(swhIdx).asBool
+    print("SW" + swhIdx + " ")
     println("\n")
+
     dsp.io.write := ~io.dspWrite
     dsp.io.dspAddr := dspAddr.asUInt
     dsp.io.dspCtrl := dspCtrl.asUInt
+    dsp.io.dspBypass := dspBypass
 
     dsp.io.inData := wm8731Ctrl.io.inData
     dsp.io.clk := wm8731Ctrl.io.sync
@@ -98,6 +109,8 @@ class Top() extends Module {
       io.dspAddrSevSeg(0)(i) := dspAddrSevSeg.io.seg(i)
       io.dspAddrSevSeg(1)(i) := "b1111111".U // Maybe add later
     }
+
+    // Control signal
     val dspCtrlSevSeg0 = Module(new SevenSegDecoder)
     val dspCtrlSevSeg1 = Module(new SevenSegDecoder)
     dspCtrlSevSeg0.io.sw := dspCtrl.asUInt(3, 0)
@@ -107,6 +120,7 @@ class Top() extends Module {
       io.dspCtrlSevSeg(1)(i) := dspCtrlSevSeg1.io.seg(i)
     }
 
+    // Stored control signal
     val dspStrdSevSeg0 = Module(new SevenSegDecoder)
     val dspStrdSevSeg1 = Module(new SevenSegDecoder)
     dspStrdSevSeg0.io.sw := dsp.io.strdCtrl.asUInt(3, 0)
@@ -115,6 +129,10 @@ class Top() extends Module {
       io.dspStrdSevSeg(0)(i) := dspStrdSevSeg0.io.seg(i)
       io.dspStrdSevSeg(1)(i) := dspStrdSevSeg1.io.seg(i)
     }
+
+    // Stored bypass signal
+    io.dspStrdBypass := dsp.io.strdBypass
+    io.dspBypass := dspBypass
 
     when(io.sw(3)) {
       // bypass dsp

@@ -14,8 +14,8 @@ class ClampDistortion(defaultCtrl: Int = 16, clampFrac: Int = 256)
   val clampLower = -clampUpper
 
   when(postGain > clampUpper) {
-    io.audioOut := clampUpper
+    audioOut := clampUpper
   }.elsewhen(postGain < clampLower) {
-    io.audioOut := clampLower
+    audioOut := clampLower
   }
 }

@@ -17,6 +17,14 @@ trait DSPModuleTestTools {
     dut.io.write.poke(false.B)
   }
 
+  def sendBypassSig(dut: DSPModule, bypass: Bool): Unit = {
+    dut.io.bypass.poke(bypass)
+    dut.io.write.poke(true.B)
+    dut.clock.step()
+    dut.io.bypass.poke(false.B)
+    dut.io.write.poke(false.B)
+  }
+
   def simulateAudio(
       dut: DSPModule,
       inputFile: String = "sample.wav",

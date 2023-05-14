@@ -26,7 +26,7 @@ class FIRFilter(coeffs: Seq[SInt]) extends DSPModule {
     ).asSInt
   )
   // Sum up the products
-  io.audioOut := products
+  audioOut := products
     .reduceTree(_ + _)(DATA_WIDTH + (CTRL_WIDTH / 2) - 1, CTRL_WIDTH / 2)
     .asSInt
 }

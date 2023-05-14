@@ -10,7 +10,9 @@ class AudioProcessingFrameControlIO extends Bundle {
   val write = Input(Bool())
   val dspAddr = Input(UInt(log2Up(DSPModules.effects.length).W))
   val dspCtrl = Input(UInt(CTRL_WIDTH.W))
+  val dspBypass = Input(Bool())
   val strdCtrl = Output(UInt(CTRL_WIDTH.W))
+  val strdBypass = Output(Bool())
 }
 
 class AudioProcessingFrameIO extends AudioProcessingFrameControlIO {
@@ -35,10 +37,13 @@ class AudioProcessingFrame extends Module {
   // Send signals to modules
   val write = Wire(Vec(effects.length, Bool()))
   val strdCtrl = Wire(Vec(effects.length, UInt(CTRL_WIDTH.W)))
+  val strdBypass = Wire(Vec(effects.length, Bool()))
   for (i <- 0 until effects.length) {
     write(i) := WireDefault(false.B)
     strdCtrl(i) := effects(i).io.strdCtrlSig
+    strdBypass(i) := effects(i).io.strdBypass
     effects(i).io.ctrlSig := io.dspCtrl
+    effects(i).io.bypass := io.dspBypass
     effects(i).io.clk := io.clk
     effects(i).io.write := write(i)
   }
@@ -48,6 +53,9 @@ class AudioProcessingFrame extends Module {
 
   // Get current stored control signal
   io.strdCtrl := strdCtrl(io.dspAddr)
+
+  // Get current store bypass signal
+  io.strdBypass := strdBypass(io.dspAddr)
 
   // Chain effects modules
   effects(0).io.audioIn := io.inData
