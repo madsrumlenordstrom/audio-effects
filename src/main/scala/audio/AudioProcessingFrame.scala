@@ -15,18 +15,18 @@ class AudioProcessingFrameControlIO(length: Int) extends Bundle {
   val strdBypass = Output(Bool())
 }
 
-class AudioProcessingFrameIO(length: Int) extends AudioProcessingFrameControlIO(length) {
-  // Audio input and output (L/R)
+class AudioProcessingFrameIO(length: Int)
+    extends AudioProcessingFrameControlIO(length) {
   val inData = Input(SInt(DATA_WIDTH.W))
   val outData = Output(SInt(DATA_WIDTH.W))
   val clk = Input(Bool())
 }
 
 class AudioProcessingFrame extends Module {
-  val io = IO(new AudioProcessingFrameIO(2)) // TODO Make dynamic
-
   // Initialize modules
   val effects = DSPModules.apply.effects
+
+  val io = IO(new AudioProcessingFrameIO(effects.length))
 
   // Print configuration
   println("\n\nAudio chain is configured as:")
