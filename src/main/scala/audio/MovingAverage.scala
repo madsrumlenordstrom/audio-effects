@@ -20,4 +20,4 @@ object MovingAverage {
 
 import MovingAverage.movingAvgSeq
 
-class MovingAverage(length: Int = 16) extends FIRFilter(movingAvgSeq(length)) {}
+class MovingAverage(defaultCtrl: Int = 0, length: Int = 16) extends FIRFilter(defaultCtrl, movingAvgSeq(length)) {}

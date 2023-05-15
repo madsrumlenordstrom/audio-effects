@@ -24,7 +24,7 @@ class FIRFilterSpec
     }
 
     test(
-      new FIRFilter(
+      new FIRFilter(0,
         Seq(
           8.S,
           0.S,

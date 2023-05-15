@@ -5,7 +5,7 @@ import chisel3._
 import utility.Constants.{CTRL_WIDTH, DATA_WIDTH}
 
 // Generalized FIR filter parameterized by the convolution coefficients
-class FIRFilter(coeffs: Seq[SInt]) extends DSPModule {
+class FIRFilter(defaultCtrl: Int = 0, coeffs: Seq[SInt]) extends DSPModule(defaultCtrl) {
   // Create the serial-in, parallel-out shift register
   val zs = Reg(Vec(coeffs.length, SInt((DATA_WIDTH + (CTRL_WIDTH / 2)).W)))
   when(io.clk) {
@@ -26,7 +26,10 @@ class FIRFilter(coeffs: Seq[SInt]) extends DSPModule {
     ).asSInt
   )
   // Sum up the products
-  audioOut := products
+  val postFIR = products
     .reduceTree(_ + _)(DATA_WIDTH + (CTRL_WIDTH / 2) - 1, CTRL_WIDTH / 2)
     .asSInt
+  
+  // Output
+  audioOut := postFIR
 }

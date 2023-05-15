@@ -28,7 +28,7 @@ trait DSPModuleTestTools {
   def simulateAudio(
       dut: DSPModule,
       inputFile: String = "sample.wav",
-      outputFile: String = "sample_out.wav"
+      outputFile: String = "sample-out.wav"
   ): Unit = {
     val samples = getFileSamples(inputFile)
     val outSamples = new Array[Short](samples.length)

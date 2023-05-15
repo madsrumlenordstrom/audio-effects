@@ -18,14 +18,14 @@ class DSPModuleIO extends Bundle {
   val strdBypass = Output(Bool()) // Stored bypass value
 }
 
-class DSPModule(defaultCtrl: Int = 0x0000) extends Module {
+class DSPModule(defaultCtrl: Int = 0) extends Module {
   val io = IO(new DSPModuleIO())
 
   // Input register
-  val audioInReg = RegEnable(io.audioIn, io.clk)
+  val audioInReg = RegEnable(io.audioIn, 0.S, io.clk)
 
   // Output wire
-  val audioOut = Wire(SInt(DATA_WIDTH.W))
+  val audioOut = WireInit(0.S(DATA_WIDTH.W))
 
   // Control register
   val ctrlReg =
