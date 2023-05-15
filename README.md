@@ -1,10 +1,9 @@
 # audio-effects
-Audio processing on a DE2-70 FPGA
-
+Audio processing on a DE2-70 FPGA. The implementation follows the following diagram:
 
 ![Diagram](docs/audio-effects-diagram.svg)
 
-To generate verilog do:
+To generate Verilog do:
 ```
 make run
 ```
@@ -35,21 +34,29 @@ DIAGRAMMERDIR = ~/repos/diagrammer
 
 The signal path is defined in ```src/main/scala/audio/DSPModules.scala```:
 ```
-object DSPModules {
+class DSPModules {
   // Specify which effects to use
-  val effects = List(
-    Module(new NoiseGate(0xC0, 16)),
+  var effects: List[DSPModule] = List(
+    Module(new NoiseGate(0xc0, 16)),
     Module(new ClampDistortion(16, 16)),
     Module(new MovingAverage(16)),
     Module(new VolumeControl(32))
   )
 }
-
 ```
-This would create the signal path: NoiseGate -> ClampDistortion -> MovingAverage -> VolumeControl
+This would create the signal path: ```-> NoiseGate -> ClampDistortion -> MovingAverage -> VolumeControl```.
 
-To program the FPGA, plug in your DE2-70 development board via USB blaster and make sure you have quartus installed. Run the following command:
+You can specify whether or not to use stereo in ```src/main/scala/Top.scala``` by setting the boolean argument:
+```
+object Main extends App {
+  // Generate the Verilog output
+  emitVerilog(new Top(stereo = true), args)
+}
+```
+Using stereo will obviously use more hardware, but in some cases it is necessary for high quality audio.
+
+To program the FPGA, plug in your DE2-70 development board via USB blaster and make sure you have Quartus 13 installed. Run the following command:
 ```
 make program
 ```
-Plug in an AUX cable to the ```LINE IN``` plug and either a speaker or headphones to the ```LINE OUT``` plug. Play some audio and you should hear it come through. Make sure to unplug the USB blaster after programming the FPGA since it can introduce noise into the signal path. If the audio does not come through right away you might need to press ```KEY 0``` (reset) a few times.
+Plug in an AUX cable to the ```LINE IN``` plug and either a speaker or headphones to the ```LINE OUT``` plug. Play some audio and you should hear it come through. Make sure to unplug the USB blaster after programming the FPGA since it can introduce noise into the signal path. If the audio does not come through right away you might need to press ```KEY0``` (reset) a few times.
