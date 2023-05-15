@@ -35,6 +35,75 @@ class Top() extends Module {
     val dspBypass = Output(Bool()) // Current input bypass value
   })
 
+  def connectAudioFrameControl(audioFrame: AudioProcessingFrame): Unit = {
+    val addrWidth = log2Up(DSPModules.effects.length)
+    // Connect addressing switches
+    println("\n\nAddressing switches configured as:")
+    val dspAddr = Wire(Vec(addrWidth, UInt(1.W)))
+    for (i <- addrWidth - 1 to 0 by -1) {
+      val swhIdx = io.sw.length - addrWidth + i
+      print("SW" + swhIdx + " ")
+      dspAddr(i) := io.sw(swhIdx).asUInt
+    }
+
+    // Connect control switches
+    println("\n\nControl switches configured as:")
+    val dspCtrl = Wire(Vec(CTRL_WIDTH, UInt(1.W)))
+    for (i <- CTRL_WIDTH - 1 to 0 by -1) {
+      val swhIdx = io.sw.length - addrWidth - CTRL_WIDTH + i
+      print("SW" + swhIdx + " ")
+      dspCtrl(i) := io.sw(swhIdx).asUInt
+    }
+
+    // Connect bypass switch
+    println("\n\nBypass switch configured as:")
+    val dspBypass = Wire(Bool())
+    val swhIdx = 4
+    dspBypass := io.sw(swhIdx).asBool
+    print("SW" + swhIdx + " ")
+    println("\n")
+
+    // Send signal to audio frame
+    audioFrame.io.write := ~io.dspWrite
+    audioFrame.io.dspAddr := dspAddr.asUInt
+    audioFrame.io.dspCtrl := dspCtrl.asUInt
+    audioFrame.io.dspBypass := dspBypass
+  }
+
+  def connectAudioFrameStoredControl(audioFrame: AudioProcessingFrame): Unit = {
+    // Seven segment display
+    val dspAddrSevSeg = Module(new SevenSegDecoder)
+    dspAddrSevSeg.io.sw := audioFrame.io.dspAddr
+    for (i <- 0 until io.dspAddrSevSeg(0).length) {
+      io.dspAddrSevSeg(0)(i) := dspAddrSevSeg.io.seg(i)
+      io.dspAddrSevSeg(1)(i) := "b1111111".U // Maybe add later
+    }
+
+    // Control signal
+    val dspCtrlSevSeg0 = Module(new SevenSegDecoder)
+    val dspCtrlSevSeg1 = Module(new SevenSegDecoder)
+    dspCtrlSevSeg0.io.sw := audioFrame.io.dspCtrl.asUInt(3, 0)
+    dspCtrlSevSeg1.io.sw := audioFrame.io.dspCtrl.asUInt(7, 4)
+    for (i <- 0 until io.dspCtrlSevSeg(0).length) {
+      io.dspCtrlSevSeg(0)(i) := dspCtrlSevSeg0.io.seg(i)
+      io.dspCtrlSevSeg(1)(i) := dspCtrlSevSeg1.io.seg(i)
+    }
+
+    // Stored control signal
+    val dspStrdSevSeg0 = Module(new SevenSegDecoder)
+    val dspStrdSevSeg1 = Module(new SevenSegDecoder)
+    dspStrdSevSeg0.io.sw := audioFrame.io.strdCtrl.asUInt(3, 0)
+    dspStrdSevSeg1.io.sw := audioFrame.io.strdCtrl.asUInt(7, 4)
+    for (i <- 0 until io.dspStrdSevSeg(0).length) {
+      io.dspStrdSevSeg(0)(i) := dspStrdSevSeg0.io.seg(i)
+      io.dspStrdSevSeg(1)(i) := dspStrdSevSeg1.io.seg(i)
+    }
+
+    // Stored bypass signal
+    io.dspStrdBypass := audioFrame.io.strdBypass
+    io.dspBypass := audioFrame.io.dspBypass
+  }
+
   withReset(!reset.asBool) {
     val ledCtrl = Module(new LEDController())
     ledCtrl.io.ledio <> io.ledio
@@ -57,84 +126,16 @@ class Top() extends Module {
 
     io.ledio.gled(1) := wm8731Ctrl.io.sync
 
-    // TODO: move this connection to DSP module
+    /// Connect to DSP Modules
+    val af = Module(new (AudioProcessingFrame))
 
-    /// Connect to DSP Module
-    val dsp = Module(new (AudioProcessingFrame))
-    val addrWidth = log2Up(DSPModules.effects.length)
+    af.io.inData := wm8731Ctrl.io.inData
+    af.io.clk := wm8731Ctrl.io.sync
+    wm8731Ctrl.io.outData := af.io.outData
 
-    // Connect addressing switches
-    println("\n\nAddressing switches configured as:")
-    val dspAddr = Wire(Vec(addrWidth, UInt(1.W)))
-    for (i <- addrWidth - 1 to 0 by -1) {
-      val swhIdx = io.sw.length - addrWidth + i
-      print("SW" + swhIdx + " ")
-      dspAddr(i) := io.sw(swhIdx).asUInt
-    }
-    // Connect control switches
-    println("\n\nControl switches configured as:")
-    val dspCtrl = Wire(Vec(CTRL_WIDTH, UInt(1.W)))
-    for (i <- CTRL_WIDTH - 1 to 0 by -1) {
-      val swhIdx = io.sw.length - addrWidth - CTRL_WIDTH + i
-      print("SW" + swhIdx + " ")
-      dspCtrl(i) := io.sw(swhIdx).asUInt
-    }
-
-    // Connect bypass switch
-    println("\n\nBypass switch configured as:")
-    val dspBypass = Wire(Bool())
-    val swhIdx = 4
-    dspBypass := io.sw(swhIdx).asBool
-    print("SW" + swhIdx + " ")
-    println("\n")
-
-    dsp.io.write := ~io.dspWrite
-    dsp.io.dspAddr := dspAddr.asUInt
-    dsp.io.dspCtrl := dspCtrl.asUInt
-    dsp.io.dspBypass := dspBypass
-
-    dsp.io.inData := wm8731Ctrl.io.inData
-    dsp.io.clk := wm8731Ctrl.io.sync
-
-    // Seven segment display
-    val dspAddrSevSeg = Module(new SevenSegDecoder)
-    dspAddrSevSeg.io.sw := dspAddr.asUInt
-    for (i <- 0 until io.dspAddrSevSeg(0).length) {
-      io.dspAddrSevSeg(0)(i) := dspAddrSevSeg.io.seg(i)
-      io.dspAddrSevSeg(1)(i) := "b1111111".U // Maybe add later
-    }
-
-    // Control signal
-    val dspCtrlSevSeg0 = Module(new SevenSegDecoder)
-    val dspCtrlSevSeg1 = Module(new SevenSegDecoder)
-    dspCtrlSevSeg0.io.sw := dspCtrl.asUInt(3, 0)
-    dspCtrlSevSeg1.io.sw := dspCtrl.asUInt(7, 4)
-    for (i <- 0 until io.dspCtrlSevSeg(0).length) {
-      io.dspCtrlSevSeg(0)(i) := dspCtrlSevSeg0.io.seg(i)
-      io.dspCtrlSevSeg(1)(i) := dspCtrlSevSeg1.io.seg(i)
-    }
-
-    // Stored control signal
-    val dspStrdSevSeg0 = Module(new SevenSegDecoder)
-    val dspStrdSevSeg1 = Module(new SevenSegDecoder)
-    dspStrdSevSeg0.io.sw := dsp.io.strdCtrl.asUInt(3, 0)
-    dspStrdSevSeg1.io.sw := dsp.io.strdCtrl.asUInt(7, 4)
-    for (i <- 0 until io.dspStrdSevSeg(0).length) {
-      io.dspStrdSevSeg(0)(i) := dspStrdSevSeg0.io.seg(i)
-      io.dspStrdSevSeg(1)(i) := dspStrdSevSeg1.io.seg(i)
-    }
-
-    // Stored bypass signal
-    io.dspStrdBypass := dsp.io.strdBypass
-    io.dspBypass := dspBypass
-
-    when(io.sw(3)) {
-      // bypass dsp
-      wm8731Ctrl.io.outData := wm8731Ctrl.io.inData
-    }.otherwise {
-      wm8731Ctrl.io.outData := dsp.io.outData
-    }
-
+    connectAudioFrameControl(audioFrame = af)
+    connectAudioFrameStoredControl(audioFrame = af)
+    
     // gled0 indicates whether wm8731 ready
     io.ledio.gled(0) := wm8731Ctrl.io.ready
 

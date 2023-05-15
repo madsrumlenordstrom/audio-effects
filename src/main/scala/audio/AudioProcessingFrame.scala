@@ -32,7 +32,6 @@ class AudioProcessingFrame extends Module {
   // Print configuration
   println("\nAudio chain is configured as:")
   effects.foreach(effect => print("-> " + effect.desiredName + " "))
-  println()
 
   // Send signals to modules
   val write = Wire(Vec(effects.length, Bool()))
