@@ -1,4 +1,4 @@
-package utility
+package io
 
 import chisel3._
 import chisel3.util.{switch, is}

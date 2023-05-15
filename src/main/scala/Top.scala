@@ -1,20 +1,19 @@
 import chisel3._
 import chisel3.util.{Counter, log2Up}
 
-import io.{WM8731Controller, WM8731IO}
+import io.{WM8731Controller, WM8731IO, SevenSegDecoder}
 import io.{LEDController, LEDIO}
 import audio.{AudioProcessingFrame, AudioProcessingFrameIO, DSPModules}
 import utility.Constants._
-import utility.SevenSegDecoder
 import utility.VolumeIndicator
 import audio.Sounds
 
 /// Switches:       LOW                     HIGH
-/// SW0          combine channels       select single channel
-/// SW1          select left chan       select right chan (needs sw0 = true)
+/// SW0          combine channels       select single channel (requires mono audio)
+/// SW1          select left chan       select right chan (needs sw0 = true and mono audio)
 /// SW2              -                  connect dacdat to adcdat, bypass decoder
-/// SW3              -                  bypass all audio processing
-/// SW4              -                  bypass currently selected DSP effect (on write edge)
+/// SW3              -                  bypass currently selected DSP effect (on write edge)
+/// SW4
 /// SW5
 /// SW6
 /// SW7             INVALID                 INVALID         (not connected)
@@ -59,7 +58,7 @@ class Top(stereo: Boolean = false) extends Module {
     // Connect bypass switch
     println("\n\nBypass switch configured as:")
     val dspBypass = Wire(Bool())
-    val swhIdx = 4
+    val swhIdx = 3
     dspBypass := io.sw(swhIdx).asBool
     print("SW" + swhIdx + " ")
     println("\n")
