@@ -8,6 +8,7 @@ import utility.I2CIO
 import utility.Constants._
 import utility.AudioPLLDriver
 import utility.AudioPLL
+import os.read
 
 // IO bundle for ADC
 class WM8731IO_ADC extends Bundle {
@@ -40,16 +41,12 @@ class WM8731ControllerIO extends Bundle {
   val errorCode = Output(UInt(16.W)) // return error code to be displayed
   val wm8731io = new WM8731IO // board pins
 
-  // Mono
-  val inData = Output(SInt(DATA_WIDTH.W))
-  val outData = Input(SInt(DATA_WIDTH.W))
+  // Stereo
+  val inData = Vec(2, Output(SInt(DATA_WIDTH.W)))
+  val outData = Vec(2 ,Input(SInt(DATA_WIDTH.W)))
   val sync = Output(Bool()) // true when a frame is ready
 
-  val singleChannelMode = Input(
-    Bool()
-  ) // false to combine channel, true to select channel
   val bypass = Input(Bool())
-  val channelSelect = Input(Bool())
 }
 
 object WM8731Controller {
@@ -95,12 +92,7 @@ class WM8731Controller extends Module {
   i2sIn.io.lrc := io.wm8731io.adc.adclrck
   i2sIn.io.dat := io.wm8731io.adc.adcdat
 
-  when(io.singleChannelMode) {
-    io.inData := i2sIn.io.data(io.channelSelect.asUInt).asSInt
-  }.otherwise {
-    // if combine channels, calculate mean value between left and right
-    io.inData := ((i2sIn.io.data(0).asSInt + i2sIn.io.data(1).asSInt) / 2.S).asSInt
-  }
+  io.inData := i2sIn.io.data
   io.sync := i2sIn.io.sync
 
   val i2sOut = Module(new I2S(1, DATA_WIDTH))
@@ -111,8 +103,8 @@ class WM8731Controller extends Module {
   }.otherwise {
     io.wm8731io.dac.dacdat := i2sOut.io.dat
   }
-  i2sOut.io.data(0) := io.outData.asUInt
-  i2sOut.io.data(1) := io.outData.asUInt
+  i2sOut.io.data(0) := io.outData(0).asSInt
+  i2sOut.io.data(1) := io.outData(1).asSInt
 
   val i2cCtrl = Module(new I2CController(WM8731_I2C_ADDR, WM8731_I2C_FREQ))
   i2cCtrl.io.i2cio <> io.wm8731io.i2c

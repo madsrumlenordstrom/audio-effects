@@ -120,8 +120,6 @@ class Top() extends Module {
     wm8731Ctrl.io.clock50 := io.clock50
     // connect pins from top module to controller module
     wm8731Ctrl.io.wm8731io <> io.wm8731io
-    wm8731Ctrl.io.singleChannelMode := io.sw(0)
-    wm8731Ctrl.io.channelSelect := io.sw(1)
     wm8731Ctrl.io.bypass := io.sw(2)
 
     io.ledio.gled(1) := wm8731Ctrl.io.sync
@@ -129,19 +127,31 @@ class Top() extends Module {
     /// Connect to DSP Modules
     val af = Module(new (AudioProcessingFrame))
 
-    af.io.inData := wm8731Ctrl.io.inData
     af.io.clk := wm8731Ctrl.io.sync
-    wm8731Ctrl.io.outData := af.io.outData
+    wm8731Ctrl.io.outData(0) := af.io.outData
+    wm8731Ctrl.io.outData(1) := af.io.outData
 
     connectAudioFrameControl(audioFrame = af)
     connectAudioFrameStoredControl(audioFrame = af)
-    
+
+    // Channel selection logic
+    when(io.sw(0)) {
+      af.io.inData := wm8731Ctrl.io.inData(io.sw(1).asUInt).asSInt
+    }.otherwise {
+      // if combine channels, calculate mean value between left and right
+      af.io.inData := ((wm8731Ctrl.io.inData(0).asSInt + wm8731Ctrl.io
+        .inData(1)
+        .asSInt) / 2.S).asSInt
+    }
+
     // gled0 indicates whether wm8731 ready
     io.ledio.gled(0) := wm8731Ctrl.io.ready
 
     val volumeIndicator = Module(new VolumeIndicator)
     // indicate the volume of what we are about to hear
-    volumeIndicator.io.data := wm8731Ctrl.io.outData
+    volumeIndicator.io.data := ((wm8731Ctrl.io.outData(0).asSInt + wm8731Ctrl.io
+      .outData(1)
+      .asSInt) / 2.S).asSInt
 
     // blinking rled0 indicates wm8731 error
     when(wm8731Ctrl.io.error) {
