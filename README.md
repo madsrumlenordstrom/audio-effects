@@ -38,13 +38,15 @@ The signal path is defined in ```src/main/scala/audio/DSPModules.scala```:
 object DSPModules {
   // Specify which effects to use
   val effects = List(
-    Module(new ClampDistortion(16, 16384)),
+    Module(new NoiseGate(0xC0, 16)),
+    Module(new ClampDistortion(16, 16)),
     Module(new MovingAverage(16)),
-    Module(new VolumeControl(8))
+    Module(new VolumeControl(32))
   )
 }
+
 ```
-This would create the signal path: FIRFilter -> ClampDistortion -> VolumeControl
+This would create the signal path: NoiseGate -> ClampDistortion -> MovingAverage -> VolumeControl
 
 To program the FPGA, plug in your DE2-70 development board via USB blaster and make sure you have quartus installed. Run the following command:
 ```
