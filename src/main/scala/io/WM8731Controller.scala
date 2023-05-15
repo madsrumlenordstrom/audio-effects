@@ -45,9 +45,9 @@ class WM8731ControllerIO extends Bundle {
   val outData = Input(SInt(DATA_WIDTH.W))
   val sync = Output(Bool()) // true when a frame is ready
 
-  val combineChannels = Input(
+  val singleChannelMode = Input(
     Bool()
-  ) // true to combine channel, false to select first
+  ) // false to combine channel, true to select channel
   val bypass = Input(Bool())
   val channelSelect = Input(Bool())
 }
@@ -95,11 +95,11 @@ class WM8731Controller extends Module {
   i2sIn.io.lrc := io.wm8731io.adc.adclrck
   i2sIn.io.dat := io.wm8731io.adc.adcdat
 
-  when(io.combineChannels) {
-    // if combine channels, calculate mean value between left and right
-    io.inData := (i2sIn.io.data(0).asSInt + i2sIn.io.data(1).asSInt >> 1).asSInt
-  }.otherwise {
+  when(io.singleChannelMode) {
     io.inData := i2sIn.io.data(io.channelSelect.asUInt).asSInt
+  }.otherwise {
+    // if combine channels, calculate mean value between left and right
+    io.inData := ((i2sIn.io.data(0).asSInt + i2sIn.io.data(1).asSInt) >> 1).asSInt
   }
   io.sync := i2sIn.io.sync
 
@@ -160,7 +160,7 @@ class WM8731Controller extends Module {
        "b000000001".U(9.W)),        // active
 
     VecInit("b0000110".U(7.W),      // power register
-       "b000000000".U(9.W)),        // all on
+       "b001100010".U(9.W)),        // disables unneeded functions
   )
 
   val registerNumReg = RegInit(0.U(7.W))

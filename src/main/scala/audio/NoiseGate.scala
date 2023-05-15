@@ -22,8 +22,11 @@ class NoiseGate(defaultCtrl: Int = 16, holdLength: Int = 16)
   // Register for holding noise gate open on zero crossings
   val holdRegs = Reg(Vec(holdLength, Bool()))
 
+  // Threshold value determined from live testing
+  val threshold = (ctrlReg ## 0.U(4.W)).asUInt
+
   // Holding condidtion
-  holdRegs(0) := audioInReg.abs.asUInt < (ctrlReg >> 2).asUInt
+  holdRegs(0) := audioInReg.abs.asUInt < (threshold >> 1)
   // Chain registers
   for (i <- 1 until holdRegs.length) {
     when(io.clk) {
@@ -45,7 +48,7 @@ class NoiseGate(defaultCtrl: Int = 16, holdLength: Int = 16)
     is(closed) {
       audioOut := 0.S
       // Open gate on threshold
-      when(audioInReg.abs.asUInt > ctrlReg) {
+      when(audioInReg.abs.asUInt >= threshold) {
         state := open
       }
     }

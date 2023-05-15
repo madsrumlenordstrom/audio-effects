@@ -9,11 +9,11 @@ import utility.SevenSegDecoder
 import utility.VolumeIndicator
 
 /// Switches:       LOW                     HIGH
-/// SW0          select one channel     combine channels
-/// SW1          select left chan       select right chan
+/// SW0          combine channels       select single channel
+/// SW1          select left chan       select right chan (needs sw0 = true)
 /// SW2              -                  connect dacdat to adcdat, bypass decoder
-/// SW3              -                  bypass DSP module
-/// SW4
+/// SW3              -                  bypass all audio processing
+/// SW4              -                  bypass currently selected DSP effect (on write edge)
 /// SW5
 /// SW6
 /// SW7             INVALID                 INVALID         (not connected)
@@ -41,13 +41,7 @@ class Top() extends Module {
     ledCtrl.io.error := false.B
     ledCtrl.io.errorCode := 0.U
 
-    // TODO: remove
-    // gled8 - on
     io.ledio.gled(8) := true.B
-    // io.ledio.gled(1) := io.wm8731io.i2c.sclk
-    // io.ledio.gled(2) := ~io.wm8731io.i2c.sclk
-    // io.ledio.gled(3) := io.wm8731io.xck
-    // io.ledio.gled(4) := ~io.wm8731io.xck
     io.ledio.gled(5) := io.wm8731io.adc.adclrck
     io.ledio.gled(6) := ~io.wm8731io.adc.adclrck
     io.ledio.gled(7) := io.wm8731io.bclk
@@ -57,7 +51,7 @@ class Top() extends Module {
     wm8731Ctrl.io.clock50 := io.clock50
     // connect pins from top module to controller module
     wm8731Ctrl.io.wm8731io <> io.wm8731io
-    wm8731Ctrl.io.combineChannels := io.sw(0)
+    wm8731Ctrl.io.singleChannelMode := io.sw(0)
     wm8731Ctrl.io.channelSelect := io.sw(1)
     wm8731Ctrl.io.bypass := io.sw(2)
 
