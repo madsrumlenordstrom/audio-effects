@@ -6,16 +6,16 @@ import utility.Constants.{DATA_WIDTH, CTRL_WIDTH}
 import chisel3.util.log2Up
 import chisel3.util.RegEnable
 
-class AudioProcessingFrameControlIO extends Bundle {
+class AudioProcessingFrameControlIO(length: Int) extends Bundle {
   val write = Input(Bool())
-  val dspAddr = Input(UInt(log2Up(DSPModules.effects.length).W))
+  val dspAddr = Input(UInt(log2Up(length).W))
   val dspCtrl = Input(UInt(CTRL_WIDTH.W))
   val dspBypass = Input(Bool())
   val strdCtrl = Output(UInt(CTRL_WIDTH.W))
   val strdBypass = Output(Bool())
 }
 
-class AudioProcessingFrameIO extends AudioProcessingFrameControlIO {
+class AudioProcessingFrameIO(length: Int) extends AudioProcessingFrameControlIO(length) {
   // Audio input and output (L/R)
   val inData = Input(SInt(DATA_WIDTH.W))
   val outData = Output(SInt(DATA_WIDTH.W))
@@ -23,14 +23,13 @@ class AudioProcessingFrameIO extends AudioProcessingFrameControlIO {
 }
 
 class AudioProcessingFrame extends Module {
-  val io = IO(new AudioProcessingFrameIO())
+  val io = IO(new AudioProcessingFrameIO(2)) // TODO Make dynamic
 
   // Initialize modules
-  val effects =
-    (0 until DSPModules.effects.length).map(i => DSPModules.effects(i))
+  val effects = DSPModules.apply.effects
 
   // Print configuration
-  println("\nAudio chain is configured as:")
+  println("\n\nAudio chain is configured as:")
   effects.foreach(effect => print("-> " + effect.desiredName + " "))
 
   // Send signals to modules

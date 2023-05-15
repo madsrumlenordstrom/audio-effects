@@ -7,6 +7,7 @@ import audio.{AudioProcessingFrame, AudioProcessingFrameIO, DSPModules}
 import utility.Constants._
 import utility.SevenSegDecoder
 import utility.VolumeIndicator
+import audio.Sounds
 
 /// Switches:       LOW                     HIGH
 /// SW0          combine channels       select single channel
@@ -18,7 +19,7 @@ import utility.VolumeIndicator
 /// SW6
 /// SW7             INVALID                 INVALID         (not connected)
 
-class Top() extends Module {
+class Top(stereo: Boolean = false) extends Module {
   val io = IO(new Bundle {
     val clock50 = Input(Bool())
     val ledio = new LEDIO
@@ -36,7 +37,7 @@ class Top() extends Module {
   })
 
   def connectAudioFrameControl(audioFrame: AudioProcessingFrame): Unit = {
-    val addrWidth = log2Up(DSPModules.effects.length)
+    val addrWidth = log2Up(audioFrame.effects.length)
     // Connect addressing switches
     println("\n\nAddressing switches configured as:")
     val dspAddr = Wire(Vec(addrWidth, UInt(1.W)))
@@ -124,25 +125,39 @@ class Top() extends Module {
 
     io.ledio.gled(1) := wm8731Ctrl.io.sync
 
-    /// Connect to DSP Modules
-    val af = Module(new (AudioProcessingFrame))
+    // Connect to DSP Modules
+    if (stereo) {
+      val afs = Seq.fill(2)(Module(new AudioProcessingFrame))
 
-    af.io.clk := wm8731Ctrl.io.sync
-    wm8731Ctrl.io.outData(0) := af.io.outData
-    wm8731Ctrl.io.outData(1) := af.io.outData
+      for (i <- 0 until afs.length) {
+        afs(i).io.clk := wm8731Ctrl.io.sync
+        afs(i).io.inData := wm8731Ctrl.io.inData(i)
+        wm8731Ctrl.io.outData(i) := afs(i).io.outData
+        connectAudioFrameControl(audioFrame = afs(i))
+      }
 
-    connectAudioFrameControl(audioFrame = af)
-    connectAudioFrameStoredControl(audioFrame = af)
+      connectAudioFrameStoredControl(audioFrame = afs(0))
 
-    // Channel selection logic
-    when(io.sw(0)) {
-      af.io.inData := wm8731Ctrl.io.inData(io.sw(1).asUInt).asSInt
-    }.otherwise {
-      // if combine channels, calculate mean value between left and right
-      af.io.inData := ((wm8731Ctrl.io.inData(0).asSInt + wm8731Ctrl.io
-        .inData(1)
-        .asSInt) / 2.S).asSInt
+    } else {
+      val af = Module(new (AudioProcessingFrame))
+  
+      af.io.clk := wm8731Ctrl.io.sync
+      wm8731Ctrl.io.outData(0) := af.io.outData
+      wm8731Ctrl.io.outData(1) := af.io.outData
+  
+      connectAudioFrameControl(audioFrame = af)
+      connectAudioFrameStoredControl(audioFrame = af)
+      // Channel selection logic
+      when(io.sw(0)) {
+        af.io.inData := wm8731Ctrl.io.inData(io.sw(1).asUInt).asSInt
+      }.otherwise {
+        // if combine channels, calculate mean value between left and right
+        af.io.inData := ((wm8731Ctrl.io.inData(0).asSInt + wm8731Ctrl.io
+          .inData(1)
+          .asSInt) / 2.S).asSInt
+      }
     }
+
 
     // gled0 indicates whether wm8731 ready
     io.ledio.gled(0) := wm8731Ctrl.io.ready
@@ -167,5 +182,5 @@ class Top() extends Module {
 }
 object Main extends App {
   // Generate the Verilog output
-  emitVerilog(new Top(), args)
+  emitVerilog(new Top(stereo = true), args)
 }
