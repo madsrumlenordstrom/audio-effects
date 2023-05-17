@@ -4,8 +4,11 @@ import chisel3._
 import scala.math.pow
 import utility.Constants.{DATA_WIDTH}
 
-class ClampDistortion(defaultCtrl: Int = 16, clampFrac: Int = 256)
-    extends VolumeControl(defaultCtrl) {
+class ClampDistortion(
+    controlInit: Int = 16,
+    bypassInit: Boolean = false,
+    clampFrac: Int = 256
+) extends VolumeControl(controlInit, bypassInit) {
   // Calculate clamping value
   // clampFrac determines how large the signal should be before the modules clamps it
   // a value of 4 would mean the signal clamps at a quarter it maximum value

@@ -16,7 +16,7 @@ class WM8731ControllerSpec extends AnyFlatSpec with ChiselScalatestTester {
       dut.clock.step(150000)
 
       // now after finishing the i2c configuration test the input
-      dut.io.outData.poke(-0x111111.S)
+      dut.io.outData(0).poke(-0x111111.S)
       // dut.io.outData(1).poke(0x0bcdef.S)
       dut.clock.step(1) // sync outData inner register
 

@@ -22,15 +22,25 @@ class AudioProcessingFrameIO(length: Int)
   val clk = Input(Bool())
 }
 
-class AudioProcessingFrame extends Module {
+class AudioProcessingFrame(verbose: Boolean = true) extends Module {
   // Initialize modules
   val effects = DSPModules.apply.effects
 
   val io = IO(new AudioProcessingFrameIO(effects.length))
 
   // Print configuration
-  println("\n\nAudio chain is configured as:")
-  effects.foreach(effect => print("-> " + effect.desiredName + " "))
+  def printConfig(): Unit = {
+    println("Audio chain configured as:")
+    effects.foreach(effect => print("-> " + effect.desiredName + " "))
+    println()
+  }
+
+  def printEffectsConfig(): Unit = {
+    for (i <- 0 until effects.length) {
+      print(f"[0x$i%02x] ")
+      effects(i).printConfig()
+    }
+  }
 
   // Send signals to modules
   val write = Wire(Vec(effects.length, Bool()))

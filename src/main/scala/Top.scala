@@ -35,39 +35,71 @@ class Top(stereo: Boolean = false) extends Module {
     val dspBypass = Output(Bool()) // Current input bypass value
   })
 
-  def connectAudioFrameControl(audioFrame: AudioProcessingFrame): Unit = {
+  def printSwitch(swIdx: Int): Unit = {
+    print("SW" + swIdx.toString() + " ")
+  }
+
+  def printSwitchConfig(swIdx: Int, configStr: String): Unit = {
+    println(configStr)
+    printSwitch(swIdx)
+  }
+
+  def printSwitchesConfig(swRange: Range, configStr: String): Unit = {
+    println(configStr)
+    for (i <- swRange) printSwitch(i)
+    println()
+  }
+
+  def connectAudioFrameControl(
+      audioFrame: AudioProcessingFrame,
+      verbose: Boolean = true
+  ): Unit = {
     val addrWidth = log2Up(audioFrame.effects.length)
+
     // Connect addressing switches
-    println("\n\nAddressing switches configured as:")
     val dspAddr = Wire(Vec(addrWidth, UInt(1.W)))
     for (i <- addrWidth - 1 to 0 by -1) {
-      val swhIdx = io.sw.length - addrWidth + i
-      print("SW" + swhIdx + " ")
-      dspAddr(i) := io.sw(swhIdx).asUInt
+      val swIdx = io.sw.length - addrWidth + i
+      dspAddr(i) := io.sw(swIdx).asUInt
     }
 
     // Connect control switches
-    println("\n\nControl switches configured as:")
     val dspCtrl = Wire(Vec(CTRL_WIDTH, UInt(1.W)))
     for (i <- CTRL_WIDTH - 1 to 0 by -1) {
-      val swhIdx = io.sw.length - addrWidth - CTRL_WIDTH + i
-      print("SW" + swhIdx + " ")
-      dspCtrl(i) := io.sw(swhIdx).asUInt
+      val swIdx = io.sw.length - addrWidth - CTRL_WIDTH + i
+      dspCtrl(i) := io.sw(swIdx).asUInt
     }
 
     // Connect bypass switch
-    println("\n\nBypass switch configured as:")
     val dspBypass = Wire(Bool())
-    val swhIdx = 3
-    dspBypass := io.sw(swhIdx).asBool
-    print("SW" + swhIdx + " ")
-    println("\n")
+    val swIdx = 3
+    dspBypass := io.sw(swIdx).asBool
 
     // Send signal to audio frame
     audioFrame.io.write := ~io.dspWrite
     audioFrame.io.dspAddr := dspAddr.asUInt
     audioFrame.io.dspCtrl := dspCtrl.asUInt
     audioFrame.io.dspBypass := dspBypass
+
+    // Print switch configuration
+    if (verbose) {
+      println()
+      audioFrame.printConfig()
+      println()
+      audioFrame.printEffectsConfig()
+      printSwitchesConfig(
+        io.sw.length - 1 to io.sw.length - addrWidth by -1,
+        "Addressing switches configured as:"
+      )
+      println()
+      printSwitchesConfig(
+        io.sw.length - addrWidth - 1 to io.sw.length - addrWidth - CTRL_WIDTH by -1,
+        "Control switches configured as:"
+      )
+      println()
+      printSwitchConfig(swIdx, "Bypass switch configured as:")
+      println()
+    }
   }
 
   def connectAudioFrameStoredControl(audioFrame: AudioProcessingFrame): Unit = {
@@ -126,24 +158,31 @@ class Top(stereo: Boolean = false) extends Module {
 
     // Connect to DSP Modules
     if (stereo) {
-      val afs = Seq.fill(2)(Module(new AudioProcessingFrame))
+      val afs = Seq(
+        Module(new AudioProcessingFrame(true)),
+        Module(new AudioProcessingFrame(false))
+      )
 
       for (i <- 0 until afs.length) {
         afs(i).io.clk := wm8731Ctrl.io.sync
         afs(i).io.inData := wm8731Ctrl.io.inData(i)
         wm8731Ctrl.io.outData(i) := afs(i).io.outData
-        connectAudioFrameControl(audioFrame = afs(i))
+        connectAudioFrameControl(
+          audioFrame = afs(i),
+          if (i == 0) { true }
+          else { false }
+        )
       }
 
       connectAudioFrameStoredControl(audioFrame = afs(0))
 
     } else {
-      val af = Module(new (AudioProcessingFrame))
-  
+      val af = Module(new AudioProcessingFrame(true))
+
       af.io.clk := wm8731Ctrl.io.sync
       wm8731Ctrl.io.outData(0) := af.io.outData
       wm8731Ctrl.io.outData(1) := af.io.outData
-  
+
       connectAudioFrameControl(audioFrame = af)
       connectAudioFrameStoredControl(audioFrame = af)
       // Channel selection logic
@@ -156,7 +195,6 @@ class Top(stereo: Boolean = false) extends Module {
           .asSInt) / 2.S).asSInt
       }
     }
-
 
     // gled0 indicates whether wm8731 ready
     io.ledio.gled(0) := wm8731Ctrl.io.ready

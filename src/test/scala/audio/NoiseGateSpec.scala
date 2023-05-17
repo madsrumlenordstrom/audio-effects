@@ -12,7 +12,7 @@ class NoiseGateSpec
     with ChiselScalatestTester {
 
   "NoiseGate" should "play" in {
-    test(new NoiseGate(255, 16)).withAnnotations(
+    test(new NoiseGate(255, false, 16)).withAnnotations(
       Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)
     ) { dut =>
       simulateAudio(

@@ -18,8 +18,16 @@ class DSPModuleIO extends Bundle {
   val strdBypass = Output(Bool()) // Stored bypass value
 }
 
-class DSPModule(defaultCtrl: Int = 0) extends Module {
+class DSPModule(controlInit: Int = 0, bypassInit: Boolean = false)
+    extends Module {
   val io = IO(new DSPModuleIO())
+
+  def printConfig(): Unit = {
+    println(this.desiredName + " configured as:")
+    println("Control init: 0x" + controlInit.toHexString)
+    println("Bypass  init: " + bypassInit)
+    println()
+  }
 
   // Input register
   val audioInReg = RegEnable(io.audioIn, 0.S, io.clk)
@@ -29,11 +37,11 @@ class DSPModule(defaultCtrl: Int = 0) extends Module {
 
   // Control register
   val ctrlReg =
-    RegEnable(io.ctrlSig, defaultCtrl.U(CTRL_WIDTH.W), io.write && !io.bypass)
+    RegEnable(io.ctrlSig, controlInit.U(CTRL_WIDTH.W), io.write && !io.bypass)
   io.strdCtrlSig := ctrlReg
 
   // Bypass register
-  val bypassReg = RegEnable(io.bypass, false.B, io.write)
+  val bypassReg = RegEnable(io.bypass, bypassInit.B, io.write)
   io.strdBypass := bypassReg
 
   // Bypass module

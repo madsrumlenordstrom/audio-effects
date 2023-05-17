@@ -11,8 +11,11 @@ object NoiseGate {
 
 // Noise gate to reduce noise with no input
 // Uses ctrl register for the threshold value
-class NoiseGate(defaultCtrl: Int = 16, holdLength: Int = 16)
-    extends DSPModule(defaultCtrl) {
+class NoiseGate(
+    controlInit: Int = 16,
+    bypassInit: Boolean = false,
+    holdLength: Int = 16
+) extends DSPModule(controlInit, bypassInit) {
   import NoiseGate.State
   import NoiseGate.State._
 

@@ -12,7 +12,7 @@ class ClampDistortionSpec
     with ChiselScalatestTester {
 
   "ClampDistortion" should "play" in {
-    test(new ClampDistortion(16, 4096 * 2))
+    test(new ClampDistortion(16, false, 4096 * 2))
       .withAnnotations(Seq(VerilatorBackendAnnotation, WriteVcdAnnotation)) {
         dut =>
           simulateAudio(
