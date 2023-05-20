@@ -37,10 +37,10 @@ The signal path is defined in ```src/main/scala/audio/DSPModules.scala```:
 class DSPModules {
   // Specify which effects to use
   var effects: List[DSPModule] = List(
-    Module(new NoiseGate(0xc0, 16)),
-    Module(new ClampDistortion(16, 16)),
-    Module(new MovingAverage(16)),
-    Module(new VolumeControl(32))
+    Module(new NoiseGate(0xc0, false, 16)),
+    Module(new ClampDistortion(16, true, 16)),
+    Module(new MovingAverage(16, true)),
+    Module(new VolumeControl(32, false))
   )
 }
 ```
